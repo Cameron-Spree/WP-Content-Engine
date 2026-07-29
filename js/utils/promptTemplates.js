@@ -1,6 +1,6 @@
 /**
  * AI System Prompt Generator Template (Briants of Risborough Edition)
- * Formatted with HTML Widget Toggles & Strict Tag Closing Rules
+ * Formatted with ```json code blocks and strict HTML widget schema
  */
 
 export function generateAIPrompt(params) {
@@ -28,7 +28,7 @@ export function generateAIPrompt(params) {
 
   linksBank.forEach(item => {
     if (item.url && item.label) {
-      allInternalTargets.push(`- ${item.url} (Anchor Context: "${item.label}")`);
+      allInternalTargets.push(`- ${item.url} (Anchor Text: "${item.label}")`);
     } else if (typeof item === "string" && item.trim()) {
       allInternalTargets.push(`- ${item.trim()}`);
     }
@@ -36,49 +36,44 @@ export function generateAIPrompt(params) {
 
   queuedBatchPosts.forEach(post => {
     const fullBlogUrl = `${siteDomain.replace(/\/$/, "")}${blogSubpath}${post.slug.replace(/^\//, "")}`;
-    allInternalTargets.push(`- ${fullBlogUrl} (Batch Blog Post: "${post.title}")`);
+    allInternalTargets.push(`- ${fullBlogUrl} (Batch Article: "${post.title}")`);
   });
 
   const urlSection = allInternalTargets.length > 0
-    ? `\n### Target Internal Links Bank (Contextual Linking Mandate):\nWhenever natural and relevant to the topic, seamlessly hyperlink appropriate anchor phrases inside paragraphs to these internal URLs. MANDATORY RULE: Use single quotes for href attributes, e.g. <a href='https://...'>Anchor Text</a>.\n${allInternalTargets.join("\n")}\n`
+    ? `\n### Master Internal Links Bank:\nSeamlessly hyperlink appropriate anchor phrases in your text to these URLs. MANDATORY RULE: Use single quotes for href attributes, e.g. <a href='https://...'>Anchor Phrase</a>.\n${allInternalTargets.join("\n")}\n`
     : "";
 
   // Widget Instructions
   const widgetRules = [];
   if (widgets.wantToKnowMore) {
-    widgetRules.push(`- WANT TO KNOW MORE WIDGET: Include a callout block formatted exactly as:\n<div class='callout-box want-to-know-more'>\n  <h4>💡 Want to Know More? Recommended Reading</h4>\n  <ul>\n    <li><a href='[Internal Link URL]'>[Descriptive Related Article or Category Title]</a></li>\n    <li><a href='[Internal Link URL]'>[Descriptive Related Article or Category Title]</a></li>\n  </ul>\n</div>`);
+    widgetRules.push(`- WANT TO KNOW MORE CALLOUT: At the end of the post, include an HTML callout box formatted EXACTLY as:\n<div class='callout-box want-to-know-more'>\n  <h4>💡 Want to Know More? Recommended Reading</h4>\n  <ul>\n    <li><a href='[Exact URL 1 from Bank]'>[Exact Anchor Title 1]</a></li>\n    <li><a href='[Exact URL 2 from Bank]'>[Exact Anchor Title 2]</a></li>\n  </ul>\n</div>`);
   }
 
   if (widgets.categorySpotlight) {
-    widgetRules.push(`- CATEGORY SPOTLIGHT CTA WIDGET: Include a banner card formatted exactly as:\n<div class='category-spotlight-box'>\n  <h3>Explore [Main Category Name] at Briants of Risborough</h3>\n  <p>[Brief compelling sentence recommending Briants garden machinery showroom & online store.]</p>\n  <a href='[Relevant Category URL from Bank]' class='spotlight-btn'>Shop [Category Name] Range &rarr;</a>\n</div>`);
+    widgetRules.push(`- CATEGORY SPOTLIGHT BANNER: Include a CTA banner card formatted EXACTLY as:\n<div class='category-spotlight-box'>\n  <h3>Explore STIHL Range at Briants of Risborough</h3>\n  <p>Discover our full range of domestic & professional garden machinery with local workshop service.</p>\n  <a href='${siteDomain}/product-category/brand/stihl/' class='spotlight-btn'>Shop STIHL Range &rarr;</a>\n</div>`);
   }
 
   if (widgets.table) {
-    widgetRules.push(`- DATA & COMPARISON TABLE: Include at least one structured HTML <table> with <thead>, <tr>, <th> headers, and <tbody> table data rows summarizing specs, maintenance schedules, or product recommendations.`);
+    widgetRules.push(`- DATA & COMPARISON TABLE: Include at least one structured HTML <table> with <thead>, <tr>, <th> headers, and <tbody> data rows for maintenance tasks or specs.`);
   }
 
   const widgetSection = widgetRules.length > 0
-    ? `\n### Required HTML Widgets & Interactive Elements:\n${widgetRules.join("\n")}\n`
+    ? `\n### Mandatory HTML Widgets:\n${widgetRules.join("\n")}\n`
     : "";
 
   const inlineImagesRule = Number(imageCount) > 0
-    ? `Insert exactly ${imageCount} inline image tag placeholders formatted as {{IMAGE:keyword}} (e.g. {{IMAGE:chainsaw}}, {{IMAGE:lawnmower}}) inside content_html.`
-    : `Do NOT insert any inline {{IMAGE:keyword}} placeholders inside content_html. A single featured cover image will be assigned automatically for the blog post listing.`;
+    ? `Insert exactly ${imageCount} inline image placeholders formatted as {{IMAGE:keyword}} (e.g. {{IMAGE:chainsaw}}) inside content_html.`
+    : `Do NOT insert any inline {{IMAGE:keyword}} placeholders. A featured cover image will be assigned automatically.`;
 
-  return `SYSTEM INSTRUCTION: Act as an expert SEO Content Strategist and Copywriter for Briants of Risborough (${siteDomain}). Write a high-ranking, highly engaging blog post based on the specifications below.
+  return `SYSTEM INSTRUCTION: Act as an expert SEO Content Strategist and Copywriter for Briants of Risborough (${siteDomain}). Write a high-ranking, beautifully formatted blog post based on the specifications below.
 
-CRITICAL REQUIREMENT: You MUST respond ONLY with a raw, valid JSON object. Do NOT wrap your response in markdown code blocks like \`\`\`json. Output raw JSON only.
+CRITICAL FORMATTING REQUIREMENT: Wrap your entire JSON output inside a markdown \`\`\`json ... \`\`\` code block.
 
-STRICT HTML & JSON FORMATTING RULES:
-1. MANDATORY LINK CLOSING: Every opened <a href='...'> tag MUST be closed </a> immediately after the anchor text. NEVER leave an anchor tag unclosed.
-   - WRONG: <a href='https://...'>Anchor Phrase. The rest of the paragraph continues...
-   - RIGHT: <a href='https://...'>Anchor Phrase</a>. The rest of the paragraph continues...
-2. PARAGRAPH & HEADING SPACING:
-   - EVERY paragraph MUST be wrapped in its own separate <p>...</p> tags.
-   - EVERY section heading MUST be wrapped in <h2>Heading Title</h2> or <h3>Heading Title</h3>.
-   - NEVER run headings and paragraph text together without HTML tags.
-3. SINGLE QUOTES IN ATTRIBUTES: In content_html, ALWAYS use single quotes for HTML attributes (e.g. <a href='https://...'>Text</a>). Never use double quotes inside HTML string values.
-4. Clean HTML links inside href attributes. Do NOT put markdown syntax like [url](url) inside href.
+STRICT HTML RULES FOR content_html:
+1. EVERY paragraph MUST be wrapped in separate <p>...</p> tags. Do NOT output plain text without <p> wrappers.
+2. EVERY section heading MUST be wrapped in <h2>Heading Title</h2> or <h3>Heading Title</h3>.
+3. EVERY link MUST be closed properly: <a href='https://...'>Anchor Phrase</a>. Never leave an <a> tag unclosed.
+4. ALWAYS use single quotes for HTML attributes inside content_html (e.g. <a href='https://...'>).
 
 ---
 ### Blog Specifications:
@@ -90,23 +85,18 @@ STRICT HTML & JSON FORMATTING RULES:
 - Image Rule: ${inlineImagesRule}
 ${urlSection}${widgetSection}
 ---
-### Required JSON Schema:
+### Required JSON Format (Wrap in \`\`\`json):
+\`\`\`json
 {
   "title": "Full Catchy Post Title",
   "slug": "url-friendly-slug-with-hyphens",
-  "categories": ["Category 1", "Category 2"],
-  "tags": ["tag1", "tag2", "tag3"],
+  "categories": ["Garden Machinery", "STIHL"],
+  "tags": ["stihl garden machinery", "chainsaw maintenance"],
   "yoast_meta_title": "SEO Title (strictly max 60 characters)",
-  "yoast_meta_desc": "Compelling SEO meta description with target keyword (strictly max 155 characters)",
-  "content_html": "<p>Intro paragraph with <a href='${siteDomain}/product-category/garden-machinery/'>internal link anchor</a>...</p><h2>Subheading</h2><p>Paragraph text...</p><table><thead><tr><th>Feature</th><th>Recommendation</th></tr></thead><tbody><tr><td>Model</td><td>STIHL MS 180</td></tr></tbody></table><div class='callout-box want-to-know-more'><h4>💡 Want to Know More? Recommended Reading</h4><ul><li><a href='${siteDomain}/product-category/garden-machinery/chainsaws/'>STIHL Chainsaws Range</a></li></ul></div>"
+  "yoast_meta_desc": "SEO description with keyword (strictly max 155 characters)",
+  "content_html": "<p>Intro paragraph with <a href='${siteDomain}/product-category/garden-machinery/'>Garden Machinery Range</a>...</p><h2>Selecting Equipment</h2><p>Paragraph text...</p><div class='callout-box want-to-know-more'><h4>💡 Want to Know More? Recommended Reading</h4><ul><li><a href='${siteDomain}/product-category/garden-machinery/chainsaws/'>STIHL Chainsaws Range</a></li></ul></div>"
 }
+\`\`\`
 
----
-### Formatting & Quality Rules for content_html:
-1. Use semantic HTML tags: <p>, <h2>, <h3>, <ul>, <ol>, <li>, <strong>, <em>, <table>, <blockquote>.
-2. Ensure every single <a href='...'> tag is properly closed with </a>.
-3. Naturally incorporate contextual internal links from the Target Internal Links Bank using single quotes for hrefs.
-4. Ensure content is 100% original, practical, and tailored for UK garden machinery & power tool customers.
-
-Respond with ONLY the valid JSON object now:`;
+Respond with the \`\`\`json block now:`;
 }
