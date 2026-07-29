@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WP Content Engine - Bulk WordPress Post & WXR XML Generator</title>
+  <title>WP Content Engine - Imperial Roman Marble Edition</title>
   <meta name="description" content="Construct, manage, schedule, and export bulk WordPress blog posts with Yoast SEO metadata and attached media via WXR 1.2 XML format.">
   
-  <!-- Fonts -->
+  <!-- Fonts: Cinzel (Roman Imperial Serif) + Inter + JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -17,25 +17,25 @@
   <!-- Stylesheet -->
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="dark-theme">
+<body class="marble-theme">
 
   <div id="app">
     <!-- Top Header -->
     <header class="app-header">
       <div class="header-left">
         <div class="brand-logo">
-          <div class="logo-icon"><i data-lucide="layers"></i></div>
+          <div class="logo-icon"><i data-lucide="landmark"></i></div>
           <div class="brand-text">
             <h1>WP Content Engine</h1>
-            <span class="version-badge">WXR 1.2 Spec</span>
+            <span class="version-badge">Imperium WXR 1.2</span>
           </div>
         </div>
       </div>
 
       <div class="header-stats">
         <div class="stat-pill" id="stat-total-posts">
-          <i data-lucide="file-text"></i>
-          <span class="stat-label">Posts:</span>
+          <i data-lucide="scroll"></i>
+          <span class="stat-label">Scrolls:</span>
           <span class="stat-value" id="count-total">0</span>
         </div>
         <div class="stat-pill" id="stat-scheduled">
@@ -49,7 +49,7 @@
           <span class="stat-value" id="count-media">0</span>
         </div>
         <div class="stat-pill status-ready" id="stat-ready">
-          <i data-lucide="check-circle-2"></i>
+          <i data-lucide="award"></i>
           <span class="stat-label">Export Ready:</span>
           <span class="stat-value" id="count-ready">0</span>
         </div>
@@ -65,26 +65,26 @@
       </div>
     </header>
 
-    <!-- Main Navigation Tabs -->
+    <!-- Main Navigation Tabs with Roman Numerals -->
     <nav class="nav-tabs-container">
       <div class="nav-tabs">
         <button class="tab-btn active" data-tab="tab-prompt">
           <i data-lucide="bot"></i>
-          <span class="tab-title">1. AI Prompt Generator</span>
+          <span class="tab-title">I. AI Prompt Generator</span>
         </button>
         <button class="tab-btn" data-tab="tab-ingest">
           <i data-lucide="file-json"></i>
-          <span class="tab-title">2. Ingestion & Media Pool</span>
+          <span class="tab-title">II. Ingestion & Media Pool</span>
           <span class="badge-count" id="badge-ingest-count">0</span>
         </button>
         <button class="tab-btn" data-tab="tab-queue">
           <i data-lucide="calendar-clock"></i>
-          <span class="tab-title">3. Post Queue & Scheduler</span>
+          <span class="tab-title">III. Post Queue & Scheduler</span>
           <span class="badge-count" id="badge-queue-count">0</span>
         </button>
         <button class="tab-btn" data-tab="tab-export">
           <i data-lucide="code-2"></i>
-          <span class="tab-title">4. WXR XML Export</span>
+          <span class="tab-title">IV. WXR XML Export</span>
         </button>
       </div>
     </nav>
@@ -96,7 +96,7 @@
       <section id="tab-prompt" class="tab-panel active">
         <div class="panel-header">
           <div>
-            <h2><i data-lucide="bot"></i> External AI Prompt Generator</h2>
+            <h2><i data-lucide="scroll"></i> External AI Prompt Generator</h2>
             <p class="panel-subtitle">Generate bulletproof system prompts for ChatGPT, Claude, or Gemini to produce strict JSON post payloads.</p>
           </div>
           <button class="btn btn-outline" id="btn-reset-prompt-form">
@@ -177,7 +177,7 @@ https://mysite.com/services/seo-audit</textarea>
             </div>
             <div class="prompt-instructions-banner">
               <i data-lucide="info"></i>
-              <span>Copy this prompt and paste it directly into <strong>ChatGPT</strong>, <strong>Claude</strong>, or <strong>Gemini</strong>. Then copy the returned JSON output into Tab 2.</span>
+              <span>Copy this prompt and paste it directly into <strong>ChatGPT</strong>, <strong>Claude</strong>, or <strong>Gemini</strong>. Then copy the returned JSON output into Tab II.</span>
             </div>
           </div>
         </div>
@@ -343,7 +343,7 @@ https://mysite.com/services/seo-audit</textarea>
             </div>
           </div>
           <div class="card meta-stat-card">
-            <div class="meta-stat-icon"><i data-lucide="search"></i></div>
+            <div class="meta-stat-icon"><i data-lucide="award"></i></div>
             <div>
               <span class="meta-stat-title">Yoast Meta Status</span>
               <h3 id="xml-stat-yoast">100% Configured</h3>
