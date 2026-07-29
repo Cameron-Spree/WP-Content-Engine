@@ -1,8 +1,31 @@
 /**
- * Smart Media Matcher & Asset Resolver for WP Content Engine
+ * Smart Media Matcher & WordPress Path Builder for WP Content Engine
  */
 
-export function autoMatchPostMedia(post, imagePool) {
+export function buildWpUploadUrl(filename, settings) {
+  const domain = (settings && settings.domain) ? settings.domain.replace(/\/$/, "") : "https://briantsofrisborough.co.uk";
+  const year = (settings && settings.uploadYear) ? settings.uploadYear : "2026";
+  const month = (settings && settings.uploadMonth) ? settings.uploadMonth : "06";
+  
+  const cleanFilename = slugifyFilename(filename);
+  return `${domain}/wp-content/uploads/${year}/${month}/${cleanFilename}`;
+}
+
+export function slugifyFilename(name) {
+  if (!name) return "image.jpg";
+  const parts = name.split(".");
+  const ext = parts.length > 1 ? parts.pop() : "jpg";
+  const baseName = parts.join(".");
+
+  const cleanBase = baseName
+    .replace(/[^\w\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+
+  return `${cleanBase || "image"}.${ext.toLowerCase()}`;
+}
+
+export function autoMatchPostMedia(post, imagePool, settings) {
   if (!imagePool || imagePool.length === 0) {
     return post;
   }
@@ -24,7 +47,7 @@ export function autoMatchPostMedia(post, imagePool) {
       // Fallback: match by partial tag or title, or fallback to first image in pool
       const partialMatch = imagePool.find(img => 
         img.tags.some(tag => tag.toLowerCase().includes(kwLower) || kwLower.includes(tag.toLowerCase())) ||
-        img.title.toLowerCase().includes(kwLower)
+        (img.title && img.title.toLowerCase().includes(kwLower))
       );
       mappedImages[keyword] = partialMatch || imagePool[0];
     }
@@ -38,7 +61,7 @@ export function autoMatchPostMedia(post, imagePool) {
 
   if (!featuredImage) {
     // Try matching post category or post title tags against image pool
-    const postTags = [...post.categories, ...post.tags].map(t => t.toLowerCase());
+    const postTags = [...(post.categories || []), ...(post.tags || [])].map(t => t.toLowerCase());
     featuredImage = imagePool.find(img => 
       img.tags.some(tag => postTags.includes(tag.toLowerCase()))
     ) || (Object.values(mappedImages)[0]) || imagePool[0];

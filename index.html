@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WP Content Engine - Imperial Roman Marble Edition</title>
+  <title>WP Content Engine - Briants of Risborough Edition</title>
   <meta name="description" content="Construct, manage, schedule, and export bulk WordPress blog posts with Yoast SEO metadata and attached media via WXR 1.2 XML format.">
   
   <!-- Fonts: Cinzel (Roman Imperial Serif) + Inter + JetBrains Mono -->
@@ -13,6 +13,9 @@
   
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- JSZip CDN for downloading Media Zip Packages -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
   <!-- Stylesheet -->
   <link rel="stylesheet" href="styles.css">
@@ -27,7 +30,7 @@
           <div class="logo-icon"><i data-lucide="landmark"></i></div>
           <div class="brand-text">
             <h1>WP Content Engine</h1>
-            <span class="version-badge">Imperium WXR 1.2</span>
+            <span class="version-badge">Briants of Risborough Spec</span>
           </div>
         </div>
       </div>
@@ -35,7 +38,7 @@
       <div class="header-stats">
         <div class="stat-pill" id="stat-total-posts">
           <i data-lucide="scroll"></i>
-          <span class="stat-label">Scrolls:</span>
+          <span class="stat-label">Posts:</span>
           <span class="stat-value" id="count-total">0</span>
         </div>
         <div class="stat-pill" id="stat-scheduled">
@@ -56,6 +59,9 @@
       </div>
 
       <div class="header-actions">
+        <button class="btn btn-outline btn-sm" id="btn-open-settings">
+          <i data-lucide="settings"></i> Site & Links Settings
+        </button>
         <button class="btn btn-secondary btn-sm" id="btn-load-sample">
           <i data-lucide="sparkles"></i> Load Sample Data
         </button>
@@ -97,7 +103,7 @@
         <div class="panel-header">
           <div>
             <h2><i data-lucide="scroll"></i> External AI Prompt Generator</h2>
-            <p class="panel-subtitle">Generate bulletproof system prompts for ChatGPT, Claude, or Gemini to produce strict JSON post payloads.</p>
+            <p class="panel-subtitle">Generate bulletproof system prompts for ChatGPT, Claude, or Gemini. Internal links bank and batch URLs are automatically injected.</p>
           </div>
           <button class="btn btn-outline" id="btn-reset-prompt-form">
             <i data-lucide="rotate-ccw"></i> Reset Inputs
@@ -111,55 +117,63 @@
             
             <div class="form-group">
               <label for="prompt-topic">Blog Post Topic / Main Subject <span class="required">*</span></label>
-              <input type="text" id="prompt-topic" class="form-input" placeholder="e.g. 10 Best SEO Strategies for E-commerce in 2026" value="The Ultimate Guide to Modern WordPress SEO in 2026">
+              <input type="text" id="prompt-topic" class="form-input" placeholder="e.g. How to Choose the Right STIHL Chainsaw" value="The Complete Guide to Selecting & Maintaining STIHL Garden Machinery">
             </div>
 
             <div class="form-group">
               <label for="prompt-keywords">Target Keywords (Comma Separated)</label>
-              <input type="text" id="prompt-keywords" class="form-input" placeholder="e.g. wordpress seo, yoast optimization, internal linking, site speed" value="wordpress seo, content marketing, search ranking, yoast seo, schema markup">
+              <input type="text" id="prompt-keywords" class="form-input" placeholder="e.g. stihl chainsaws, garden machinery, lawnmowers" value="stihl garden machinery, chainsaw maintenance, lawnmower service, briants of risborough">
             </div>
 
             <div class="form-row">
               <div class="form-group">
                 <label for="prompt-niche">Site Niche / Domain</label>
-                <input type="text" id="prompt-niche" class="form-input" placeholder="e.g. Digital Marketing, Tech, Finance" value="Digital Marketing & WordPress Development">
+                <input type="text" id="prompt-niche" class="form-input" placeholder="e.g. Garden Machinery & Outdoor Power Equipment" value="Briants of Risborough - Garden Machinery & Tools">
               </div>
               <div class="form-group">
                 <label for="prompt-tone">Brand Tone</label>
                 <select id="prompt-tone" class="form-select">
-                  <option value="Authoritative, professional, & actionable">Authoritative & Actionable</option>
-                  <option value="Conversational, friendly, & engaging">Conversational & Friendly</option>
-                  <option value="Technical, deep-dive, & developer-focused">Technical & Deep-dive</option>
-                  <option value="Persuasive & conversion-focused">Persuasive & Conversion-focused</option>
+                  <option value="Authoritative, practical, & expert guidance">Authoritative & Expert Guidance</option>
+                  <option value="Conversational, friendly, & helpful">Conversational & Helpful</option>
+                  <option value="Technical, deep-dive maintenance guide">Technical & Deep-dive</option>
+                  <option value="Persuasive & product recommendation focused">Persuasive & Product Recommendation</option>
                 </select>
               </div>
-            </div>
-
-            <div class="form-group">
-              <label for="prompt-urls">Existing Master Site URLs (Internal Linking Pool)</label>
-              <textarea id="prompt-urls" class="form-textarea" rows="3" placeholder="Paste existing site URLs (one per line or comma separated) to include internal links contextually...">https://mysite.com/blog/speed-optimization
-https://mysite.com/blog/keyword-research-guide
-https://mysite.com/services/seo-audit</textarea>
-              <span class="help-text">The AI will be instructed to hyperlink relevant context to these URLs.</span>
             </div>
 
             <div class="form-row">
               <div class="form-group">
                 <label for="prompt-word-count">Target Word Count</label>
                 <select id="prompt-word-count" class="form-select">
-                  <option value="1200-1800 words">1,200 - 1,800 words (Standard Deep Dive)</option>
-                  <option value="800-1200 words">800 - 1,200 words (Standard Post)</option>
-                  <option value="2000-3000 words">2,000 - 3,000 words (Ultimate Guide)</option>
+                  <option value="300-500 words">300 - 500 words (Short & Quick Read)</option>
+                  <option value="500-800 words">500 - 800 words (Standard Short Post)</option>
+                  <option value="800-1200 words" selected>800 - 1,200 words (Standard Article)</option>
+                  <option value="1200-1800 words">1,200 - 1,800 words (Deep Dive Guide)</option>
+                  <option value="1800-2500 words">1,800 - 2,500 words (Comprehensive Guide)</option>
+                  <option value="2500+ words">2,500+ words (Cornerstone Pillar Content)</option>
                 </select>
               </div>
               <div class="form-group">
-                <label for="prompt-images-count">Image Placeholders Needed</label>
+                <label for="prompt-images-count">Inline Image Placeholders</label>
                 <select id="prompt-images-count" class="form-select">
-                  <option value="2 to 4">2 to 4 inline images</option>
-                  <option value="1 to 2">1 to 2 inline images</option>
+                  <option value="0" selected>0 (Featured Cover Image Only)</option>
+                  <option value="1">1 inline image</option>
+                  <option value="2">2 inline images</option>
+                  <option value="3">3 inline images</option>
                   <option value="4 to 6">4 to 6 inline images</option>
                 </select>
               </div>
+            </div>
+
+            <div class="internal-links-summary-box">
+              <div class="summary-box-header">
+                <i data-lucide="link-2"></i>
+                <strong>Internal Links Auto-Injection Status</strong>
+              </div>
+              <p id="internal-links-status-text">Using 3 stored site links bank + 2 queued batch post URLs for cross-linking.</p>
+              <button class="btn btn-outline btn-sm" id="btn-edit-links-bank" type="button" style="margin-top: 8px;">
+                <i data-lucide="edit"></i> Manage Links Bank
+              </button>
             </div>
           </div>
 
@@ -209,14 +223,13 @@ https://mysite.com/services/seo-audit</textarea>
             <div class="json-textarea-wrapper">
               <textarea id="raw-json-input" class="code-textarea" rows="12" placeholder='Paste JSON here... Example:
 {
-  "title": "10 Best SEO Tips",
-  "slug": "10-best-seo-tips",
-  "categories": ["SEO"],
-  "tags": ["wordpress", "marketing"],
-  "yoast_meta_title": "10 Best SEO Tips for 2026",
-  "yoast_meta_desc": "Discover the top 10 SEO strategies...",
-  "content_html": "<p>Content with {{IMAGE:seo}} placeholder...</p>",
-  "image_placeholders": ["seo"]
+  "title": "How to Cut a Tree Safely",
+  "slug": "how-to-cut-a-tree-safely",
+  "categories": ["Chainsaws", "Garden Advice"],
+  "tags": ["tree-cutting", "stihl", "safety"],
+  "yoast_meta_title": "How to Cut a Tree Safely: Complete Guide",
+  "yoast_meta_desc": "Learn how to cut a tree safely with STIHL equipment...",
+  "content_html": "<p>Content HTML...</p>"
 }'></textarea>
             </div>
 
@@ -236,11 +249,17 @@ https://mysite.com/services/seo-audit</textarea>
             <div class="card-header-flex">
               <div>
                 <h3><i data-lucide="image"></i> Image Asset Pool</h3>
-                <p class="card-desc">Images are auto-matched to posts based on keyword tags matching <code>{{IMAGE:keyword}}</code> placeholders.</p>
+                <p class="card-desc">Upload local image files or enter image URLs. Auto-computes WordPress upload URLs based on your site domain and month.</p>
               </div>
-              <button class="btn btn-primary btn-sm" id="btn-open-add-image">
-                <i data-lucide="plus"></i> Add Image
-              </button>
+              <div class="header-buttons">
+                <label class="btn btn-secondary btn-sm" for="file-upload-input" style="cursor: pointer;">
+                  <i data-lucide="upload"></i> Upload Images
+                </label>
+                <input type="file" id="file-upload-input" accept="image/*" multiple class="hidden">
+                <button class="btn btn-primary btn-sm" id="btn-open-add-image">
+                  <i data-lucide="plus"></i> Add URL
+                </button>
+              </div>
             </div>
 
             <div class="media-pool-grid" id="media-pool-container">
@@ -320,6 +339,9 @@ https://mysite.com/services/seo-audit</textarea>
           <div class="header-buttons">
             <button class="btn btn-outline" id="btn-copy-xml">
               <i data-lucide="copy"></i> Copy XML Code
+            </button>
+            <button class="btn btn-secondary" id="btn-download-media-zip">
+              <i data-lucide="file-archive"></i> Download Media Zip (.zip)
             </button>
             <button class="btn btn-success btn-lg" id="btn-download-xml">
               <i data-lucide="download"></i> Download WordPress XML (.xml)
@@ -482,29 +504,85 @@ https://mysite.com/services/seo-audit</textarea>
   <div id="modal-add-image" class="modal-overlay hidden">
     <div class="modal-content">
       <div class="modal-header">
-        <h3><i data-lucide="image-plus"></i> Add Image to Asset Pool</h3>
+        <h3><i data-lucide="image-plus"></i> Add Image Asset</h3>
         <button class="btn-close-modal"><i data-lucide="x"></i></button>
       </div>
 
       <div class="modal-body">
         <div class="form-group">
-          <label for="image-url">Image URL <span class="required">*</span></label>
-          <input type="url" id="image-url" class="form-input" placeholder="https://images.unsplash.com/photo-..." required>
+          <label for="image-filename">Filename / Custom Name <span class="required">*</span></label>
+          <input type="text" id="image-filename" class="form-input" placeholder="e.g. STIHL-Garden-Machinery.jpg">
+          <span class="help-text">Auto-generates WP URL: <code>domain/wp-content/uploads/year/month/filename</code></span>
+        </div>
+        <div class="form-group">
+          <label for="image-url">Image URL (or paste external link) <span class="required">*</span></label>
+          <input type="url" id="image-url" class="form-input" placeholder="https://..." required>
         </div>
         <div class="form-group">
           <label for="image-title">Image Title / Alt Text</label>
-          <input type="text" id="image-title" class="form-input" placeholder="e.g. Modern Developer Laptop Setup">
+          <input type="text" id="image-title" class="form-input" placeholder="e.g. STIHL Garden Machinery Range">
         </div>
         <div class="form-group">
           <label for="image-tags">Matching Keywords / Tags (Comma separated) <span class="required">*</span></label>
-          <input type="text" id="image-tags" class="form-input" placeholder="e.g. seo, marketing, laptop, tech" required>
-          <span class="help-text">Placeholders like <code>{{IMAGE:seo}}</code> will auto-match with this image.</span>
+          <input type="text" id="image-tags" class="form-input" placeholder="e.g. stihl, machinery, lawnmower, garden" required>
         </div>
       </div>
 
       <div class="modal-footer">
         <button class="btn btn-outline btn-close-modal">Cancel</button>
-        <button class="btn btn-success" id="btn-save-new-image"><i data-lucide="plus-circle"></i> Add Image to Pool</button>
+        <button class="btn btn-success" id="btn-save-new-image"><i data-lucide="plus-circle"></i> Save Image</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 4: Site & Links Bank Settings -->
+  <div id="modal-settings" class="modal-overlay hidden">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3><i data-lucide="settings"></i> Site Domain & Internal Links Bank Configuration</h3>
+        <button class="btn-close-modal"><i data-lucide="x"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <h4 style="font-family: var(--font-cinzel); margin-bottom: 12px;"><i data-lucide="globe"></i> WordPress Domain & Upload Paths</h4>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="setting-domain">Site Base Domain</label>
+            <input type="text" id="setting-domain" class="form-input" value="https://briantsofrisborough.co.uk">
+          </div>
+          <div class="form-group">
+            <label for="setting-blog-path">Blog Subpath</label>
+            <input type="text" id="setting-blog-path" class="form-input" value="/blog/">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="setting-upload-year">WP Upload Year</label>
+            <input type="text" id="setting-upload-year" class="form-input" value="2026">
+          </div>
+          <div class="form-group">
+            <label for="setting-upload-month">WP Upload Month</label>
+            <input type="text" id="setting-upload-month" class="form-input" value="06">
+          </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid var(--border-gold-subtle); margin: 20px 0;">
+
+        <h4 style="font-family: var(--font-cinzel); margin-bottom: 8px;"><i data-lucide="link"></i> Master Internal Links Bank</h4>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">Store your site's cornerstone categories, services, and key pages. These links are automatically injected into the AI prompt generator so posts include relevant internal links.</p>
+
+        <div class="form-group">
+          <label for="setting-links-bank">Internal Links List (One per line: URL | Anchor Keyword / Description)</label>
+          <textarea id="setting-links-bank" class="code-textarea" rows="6" placeholder="https://briantsofrisborough.co.uk/garden-machinery | STIHL Garden Machinery Range
+https://briantsofrisborough.co.uk/chainsaws | Professional Chainsaws
+https://briantsofrisborough.co.uk/lawnmowers | Lawnmowers & Robot Mowers"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-close-modal">Cancel</button>
+        <button class="btn btn-primary" id="btn-save-settings"><i data-lucide="check"></i> Save Settings & Bank</button>
       </div>
     </div>
   </div>

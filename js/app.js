@@ -1,20 +1,21 @@
 /**
  * WP Content Engine - Main Application Controller
- * Handles state management, UI rendering, event dispatching, and browser persistence.
+ * Briants of Risborough Edition - Auto Links Bank, Image Upload & Path Generator, Zip Packaging
  */
 
-import { SAMPLE_IMAGE_POOL, SAMPLE_POST_PAYLOADS } from "./utils/sampleData.js";
+import { DEFAULT_SITE_SETTINGS, SAMPLE_IMAGE_POOL, SAMPLE_POST_PAYLOADS } from "./utils/sampleData.js";
 import { generateAIPrompt } from "./utils/promptTemplates.js";
 import { parseAndValidateJSON } from "./utils/jsonValidator.js";
-import { autoMatchPostMedia, replaceImagePlaceholdersInHtml } from "./utils/mediaMatcher.js";
-import { calculateBatchSchedule, parseFormattedDateToInput, formatInputToFormattedDate, formatDateFormatted } from "./utils/scheduler.js";
+import { autoMatchPostMedia, replaceImagePlaceholdersInHtml, buildWpUploadUrl, slugifyFilename } from "./utils/mediaMatcher.js";
+import { calculateBatchSchedule, parseFormattedDateToInput, formatInputToFormattedDate } from "./utils/scheduler.js";
 import { generateWXRXML } from "./utils/xmlGenerator.js";
 
 // Storage Key
-const STORAGE_KEY = "wp_content_engine_state_v2";
+const STORAGE_KEY = "wp_content_engine_state_v3";
 
 // App State
 const state = {
+  settings: { ...DEFAULT_SITE_SETTINGS },
   posts: [],
   imagePool: [],
   activeTab: "tab-prompt",
@@ -42,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 /* ==========================================================================
-   STATE PERSISTENCE & SAMPLE DATA
+   STATE PERSISTENCE
    ========================================================================== */
 
 function loadStoredState() {
@@ -50,6 +51,7 @@ function loadStoredState() {
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
+      if (parsed.settings) state.settings = parsed.settings;
       state.posts = parsed.posts || [];
       state.imagePool = parsed.imagePool || [];
       if (parsed.scheduleConfig) state.scheduleConfig = parsed.scheduleConfig;
@@ -58,7 +60,7 @@ function loadStoredState() {
     }
   }
 
-  // If initial state is completely empty, populate sample media pool for instant usability
+  // Populate sample defaults if empty
   if (state.imagePool.length === 0) {
     state.imagePool = [...SAMPLE_IMAGE_POOL];
   }
@@ -66,6 +68,7 @@ function loadStoredState() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    settings: state.settings,
     posts: state.posts,
     imagePool: state.imagePool,
     scheduleConfig: state.scheduleConfig
@@ -98,8 +101,9 @@ function switchTab(tabId) {
     panel.classList.toggle("active", panel.id === tabId);
   });
 
-  // Re-render export panel when switching to export tab
-  if (tabId === "tab-export") {
+  if (tabId === "tab-prompt") {
+    updatePromptPreview();
+  } else if (tabId === "tab-export") {
     renderXmlExport();
   }
 
@@ -113,7 +117,7 @@ function switchTab(tabId) {
 function initPromptGenerator() {
   const inputs = [
     "prompt-topic", "prompt-keywords", "prompt-niche",
-    "prompt-tone", "prompt-urls", "prompt-word-count", "prompt-images-count"
+    "prompt-tone", "prompt-word-count", "prompt-images-count"
   ];
 
   inputs.forEach(id => {
@@ -132,13 +136,18 @@ function initPromptGenerator() {
   });
 
   document.getElementById("btn-reset-prompt-form").addEventListener("click", () => {
-    document.getElementById("prompt-topic").value = "The Ultimate Guide to Modern WordPress SEO in 2026";
-    document.getElementById("prompt-keywords").value = "wordpress seo, content marketing, search ranking, yoast seo";
-    document.getElementById("prompt-niche").value = "Digital Marketing & WordPress Development";
-    document.getElementById("prompt-tone").value = "Authoritative, professional, & actionable";
-    document.getElementById("prompt-urls").value = "https://mysite.com/blog/speed-optimization\nhttps://mysite.com/blog/keyword-research-guide";
+    document.getElementById("prompt-topic").value = "The Complete Guide to Selecting & Maintaining STIHL Garden Machinery";
+    document.getElementById("prompt-keywords").value = "stihl garden machinery, chainsaw maintenance, lawnmower service";
+    document.getElementById("prompt-niche").value = "Briants of Risborough - Garden Machinery & Tools";
+    document.getElementById("prompt-tone").value = "Authoritative, practical, & expert guidance";
+    document.getElementById("prompt-word-count").value = "800-1200 words";
+    document.getElementById("prompt-images-count").value = "0";
     updatePromptPreview();
     showToast("Prompt generator reset to defaults.", "info");
+  });
+
+  document.getElementById("btn-edit-links-bank").addEventListener("click", () => {
+    openModal("modal-settings");
   });
 
   updatePromptPreview();
@@ -150,13 +159,22 @@ function updatePromptPreview() {
     keywords: document.getElementById("prompt-keywords").value,
     niche: document.getElementById("prompt-niche").value,
     tone: document.getElementById("prompt-tone").value,
-    urls: document.getElementById("prompt-urls").value,
     wordCount: document.getElementById("prompt-word-count").value,
-    imageCount: document.getElementById("prompt-images-count").value
+    imageCount: document.getElementById("prompt-images-count").value,
+    linksBank: state.settings.linksBank || [],
+    queuedBatchPosts: state.posts || [],
+    siteDomain: state.settings.domain,
+    blogSubpath: state.settings.blogSubpath
   };
 
   const generated = generateAIPrompt(params);
   document.getElementById("prompt-output").value = generated;
+
+  // Update Link Bank Summary Text
+  const bankCount = (state.settings.linksBank || []).length;
+  const postCount = (state.posts || []).length;
+  document.getElementById("internal-links-status-text").textContent = 
+    `Using ${bankCount} stored site links bank + ${postCount} queued batch blog post URLs for cross-linking.`;
 }
 
 /* ==========================================================================
@@ -202,7 +220,7 @@ function initIngestionAndMedia() {
   document.getElementById("btn-paste-sample-json").addEventListener("click", () => {
     rawInput.value = JSON.stringify(SAMPLE_POST_PAYLOADS, null, 2);
     rawInput.dispatchEvent(new Event("input"));
-    showToast("Demo JSON payload loaded into ingestion area.", "info");
+    showToast("Briants of Risborough demo JSON loaded.", "info");
   });
 
   document.getElementById("btn-ingest-json").addEventListener("click", () => {
@@ -214,8 +232,8 @@ function initIngestionAndMedia() {
       return;
     }
 
-    // Auto match posts with media pool
-    const matchedPosts = result.posts.map(post => autoMatchPostMedia(post, state.imagePool));
+    // Auto match posts with media pool using settings
+    const matchedPosts = result.posts.map(post => autoMatchPostMedia(post, state.imagePool, state.settings));
     state.posts.push(...matchedPosts);
 
     saveState();
@@ -228,9 +246,57 @@ function initIngestionAndMedia() {
     switchTab("tab-queue");
   });
 
+  // Local File Upload Listener
+  const fileInput = document.getElementById("file-upload-input");
+  fileInput.addEventListener("change", (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    files.forEach(file => {
+      const filename = slugifyFilename(file.name);
+      const computedWpUrl = buildWpUploadUrl(filename, state.settings);
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        const dataUrl = event.target.result;
+        const tags = extractTagsFromFilename(filename);
+
+        const newImg = {
+          id: "img_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4),
+          filename: filename,
+          url: computedWpUrl,
+          previewUrl: dataUrl,
+          title: file.name.split(".")[0].replace(/[-_]/g, " "),
+          tags: tags,
+          fileData: dataUrl
+        };
+
+        state.imagePool.push(newImg);
+
+        // Auto match across posts
+        state.posts = state.posts.map(p => autoMatchPostMedia(p, state.imagePool, state.settings));
+
+        saveState();
+        renderAll();
+      };
+
+      reader.readAsDataURL(file);
+    });
+
+    showToast(`Uploaded ${files.length} image(s). WP URLs & tags calculated!`, "success");
+    fileInput.value = "";
+  });
+
   document.getElementById("btn-open-add-image").addEventListener("click", () => {
     openModal("modal-add-image");
   });
+}
+
+function extractTagsFromFilename(filename) {
+  const base = filename.split(".")[0];
+  const parts = base.toLowerCase().split(/[-_\s]+/);
+  const stopWords = ["the", "a", "an", "and", "or", "in", "of", "to", "for", "img", "image", "pic"];
+  return [...new Set(parts.filter(p => p.length > 2 && !stopWords.includes(p)))];
 }
 
 function renderMediaPool() {
@@ -239,40 +305,43 @@ function renderMediaPool() {
 
   if (state.imagePool.length === 0) {
     container.innerHTML = `
-      <div class="empty-placeholder">
-        <i data-lucide="image-off"></i>
-        <p>No images in pool. Click "Add Image" above to populate asset pool.</p>
+      <div class="empty-placeholder" style="text-align:center; padding: 40px; color: var(--text-muted);">
+        <i data-lucide="image-off" style="width:36px; height:36px; margin-bottom:8px;"></i>
+        <p>No images in pool. Click "Upload Images" or "Add URL" to populate asset pool.</p>
       </div>`;
     refreshLucideIcons();
     return;
   }
 
-  container.innerHTML = state.imagePool.map(img => `
+  container.innerHTML = state.imagePool.map(img => {
+    const displaySrc = img.previewUrl || img.url;
+    return `
     <div class="media-asset-card" data-img-id="${img.id}">
       <div class="media-asset-img-wrapper">
-        <img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.title)}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x200?text=Image+Error'" />
+        <img src="${escapeHtml(displaySrc)}" alt="${escapeHtml(img.title)}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x200?text=Image+Error'" />
       </div>
       <div class="media-asset-details">
         <div class="media-asset-title" title="${escapeHtml(img.title)}">${escapeHtml(img.title)}</div>
+        <div style="font-family: var(--font-mono); font-size: 10px; color: var(--accent-gold-dark); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(img.url)}">
+          ${escapeHtml(img.filename || img.url.split('/').pop())}
+        </div>
         <div class="tag-pills">
           ${img.tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join("")}
         </div>
         <div class="media-asset-actions">
-          <span>ID: ${escapeHtml(img.id)}</span>
+          <span>WP Upload Ready</span>
           <button class="btn-icon-delete btn-delete-img" data-img-id="${img.id}" title="Delete Image">
             <i data-lucide="trash-2"></i>
           </button>
         </div>
       </div>
-    </div>
-  `).join("");
+    </div>`;
+  }).join("");
 
-  // Attach delete handlers
   container.querySelectorAll(".btn-delete-img").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      const id = btn.getAttribute("data-img-id");
-      deleteImageFromPool(id);
+      deleteImageFromPool(btn.getAttribute("data-img-id"));
     });
   });
 
@@ -291,7 +360,6 @@ function deleteImageFromPool(imageId) {
    ========================================================================== */
 
 function initQueueAndScheduler() {
-  // Set default schedule date picker to today
   const startDateInput = document.getElementById("sched-start-date");
   if (startDateInput && !startDateInput.value) {
     startDateInput.value = state.scheduleConfig.startDateStr;
@@ -313,6 +381,7 @@ function initQueueAndScheduler() {
     state.posts = calculateBatchSchedule(state.posts, state.scheduleConfig);
     saveState();
     renderQueuePosts();
+    updatePromptPreview();
     showToast(`Batch schedule calculated for ${state.posts.length} post(s)!`, "success");
   });
 
@@ -335,14 +404,14 @@ function renderQueuePosts() {
       <div class="card empty-card" style="text-align: center; padding: 48px;">
         <i data-lucide="file-x-2" style="width: 48px; height: 48px; color: var(--text-dim); margin-bottom: 12px;"></i>
         <h3>Queue is Empty</h3>
-        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Import JSON from Tab 2 or click "Load Sample Data" in top header to start.</p>
+        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Import JSON from Tab II or click "Load Sample Data" in top header to start.</p>
       </div>`;
     refreshLucideIcons();
     return;
   }
 
   container.innerHTML = state.posts.map((post, idx) => {
-    const featuredImgUrl = post.featured_image ? post.featured_image.url : "https://via.placeholder.com/150?text=No+Image";
+    const featuredImgUrl = post.featured_image ? (post.featured_image.previewUrl || post.featured_image.url) : "https://via.placeholder.com/150?text=No+Image";
     const statusBadgeClass = post.status === "future" ? "badge-warning" : "badge-success";
     const statusLabel = post.status === "future" ? "Scheduled" : "Publish";
 
@@ -352,7 +421,7 @@ function renderQueuePosts() {
         <img src="${escapeHtml(featuredImgUrl)}" alt="${escapeHtml(post.title)}" class="queue-post-thumb" onerror="this.src='https://via.placeholder.com/150?text=No+Image'" />
         <div class="queue-post-info">
           <h4>#${idx + 1}. ${escapeHtml(post.title)}</h4>
-          <div class="queue-post-slug">/${escapeHtml(post.slug)}</div>
+          <div class="queue-post-slug">${state.settings.domain}${state.settings.blogSubpath}${escapeHtml(post.slug)}</div>
           <div class="queue-meta-row">
             <span class="badge ${statusBadgeClass}">${statusLabel}</span>
             <span style="color: var(--text-muted);">Cats: ${escapeHtml((post.categories || []).join(", "))}</span>
@@ -382,7 +451,6 @@ function renderQueuePosts() {
     </div>`;
   }).join("");
 
-  // Attach card event listeners
   container.querySelectorAll(".btn-preview-post").forEach(btn => {
     btn.addEventListener("click", () => openPostPreview(btn.getAttribute("data-post-id")));
   });
@@ -406,7 +474,7 @@ function deletePost(postId) {
 }
 
 /* ==========================================================================
-   TAB 4: WXR XML EXPORT ENGINE
+   TAB 4: WXR XML EXPORT & MEDIA ZIP ENGINE
    ========================================================================== */
 
 function initXmlExport() {
@@ -419,6 +487,7 @@ function initXmlExport() {
   });
 
   document.getElementById("btn-download-xml").addEventListener("click", triggerXmlDownload);
+  document.getElementById("btn-download-media-zip").addEventListener("click", triggerMediaZipDownload);
 }
 
 function renderXmlExport() {
@@ -430,24 +499,27 @@ function renderXmlExport() {
   if (!textarea) return;
 
   if (state.posts.length === 0) {
-    textarea.value = `<!-- No posts in queue to generate WXR XML. Ingest posts in Tab 2 first. -->`;
+    textarea.value = `<!-- No posts in queue to generate WXR XML. Ingest posts in Tab II first. -->`;
     postsCountEl.textContent = "0 Posts";
     attachmentsCountEl.textContent = "0 Attachments";
     yoastStatEl.textContent = "0% Configured";
     return;
   }
 
-  // Auto ensure media mapping for all posts before XML build
-  const updatedPosts = state.posts.map(p => autoMatchPostMedia(p, state.imagePool));
+  // Auto ensure media mapping for all posts
+  const updatedPosts = state.posts.map(p => autoMatchPostMedia(p, state.imagePool, state.settings));
   state.posts = updatedPosts;
 
-  const xmlContent = generateWXRXML(state.posts, state.imagePool);
+  const xmlContent = generateWXRXML(state.posts, state.imagePool, {
+    siteTitle: "Briants of Risborough",
+    siteUrl: state.settings.domain,
+    authorName: "admin"
+  });
+
   textarea.value = xmlContent;
 
-  // Calculate stats
   postsCountEl.textContent = `${state.posts.length} Post${state.posts.length > 1 ? "s" : ""}`;
   
-  // Count attachments
   const attachmentUrls = new Set();
   state.posts.forEach(p => {
     if (p.featured_image && p.featured_image.url) attachmentUrls.add(p.featured_image.url);
@@ -466,12 +538,17 @@ function triggerXmlDownload() {
     return;
   }
 
-  const xmlContent = generateWXRXML(state.posts, state.imagePool);
+  const xmlContent = generateWXRXML(state.posts, state.imagePool, {
+    siteTitle: "Briants of Risborough",
+    siteUrl: state.settings.domain,
+    authorName: "admin"
+  });
+
   const blob = new Blob([xmlContent], { type: "application/xml;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   
   const dateStr = new Date().toISOString().split("T")[0];
-  const filename = `wordpress-posts-export-${dateStr}.xml`;
+  const filename = `briants-wordpress-export-${dateStr}.xml`;
 
   const link = document.createElement("a");
   link.href = url;
@@ -484,8 +561,52 @@ function triggerXmlDownload() {
   showToast(`Downloaded ${filename} successfully!`, "success");
 }
 
+function triggerMediaZipDownload() {
+  if (!window.JSZip) {
+    showToast("JSZip library loading error. Please check internet connection.", "error");
+    return;
+  }
+
+  if (state.imagePool.length === 0) {
+    showToast("No image assets in pool to download into Zip.", "warning");
+    return;
+  }
+
+  const zip = new window.JSZip();
+  const folderName = `wp-content-uploads-${state.settings.uploadYear}-${state.settings.uploadMonth}`;
+  const imgFolder = zip.folder(folderName);
+
+  let addedCount = 0;
+
+  state.imagePool.forEach(img => {
+    const filename = img.filename || (img.url ? img.url.split('/').pop() : "image.jpg");
+
+    if (img.fileData && img.fileData.startsWith("data:")) {
+      // Base64 dataUrl
+      const base64Data = img.fileData.split(',')[1];
+      imgFolder.file(filename, base64Data, { base64: true });
+      addedCount++;
+    } else {
+      // Fallback text reference URL file or note
+      imgFolder.file(`${filename}.url.txt`, `Image URL: ${img.url}`);
+    }
+  });
+
+  zip.generateAsync({ type: "blob" }).then(content => {
+    const url = URL.createObjectURL(content);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${folderName}.zip`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast(`Downloaded ${folderName}.zip with image assets!`, "success");
+  });
+}
+
 /* ==========================================================================
-   MODALS: PREVIEW & EDIT
+   MODALS: PREVIEW, EDIT, & SETTINGS
    ========================================================================== */
 
 function initModals() {
@@ -493,23 +614,23 @@ function initModals() {
     btn.addEventListener("click", closeModal);
   });
 
-  // Modal backdrop click to close
   document.querySelectorAll(".modal-overlay").forEach(overlay => {
     overlay.addEventListener("click", (e) => {
       if (e.target === overlay) closeModal();
     });
   });
 
-  // Save Post Edit Button
   document.getElementById("btn-save-edit-post").addEventListener("click", savePostEdit);
-
-  // Save New Image Button
   document.getElementById("btn-save-new-image").addEventListener("click", saveNewImage);
+  document.getElementById("btn-save-settings").addEventListener("click", saveSiteSettings);
 }
 
 function openModal(modalId) {
   const modal = document.getElementById(modalId);
   if (modal) {
+    if (modalId === "modal-settings") {
+      populateSettingsForm();
+    }
     modal.classList.remove("hidden");
     refreshLucideIcons();
   }
@@ -524,31 +645,28 @@ function openPostPreview(postId) {
   if (!post) return;
 
   document.getElementById("preview-modal-title").textContent = post.title;
-  document.getElementById("preview-modal-slug").textContent = `/${post.slug}`;
+  document.getElementById("preview-modal-slug").textContent = `${state.settings.blogSubpath}${post.slug}`;
 
-  // Yoast SEO Specs
   document.getElementById("preview-seo-title").textContent = post.yoast_meta_title || post.title;
   document.getElementById("preview-seo-title-count").textContent = `${(post.yoast_meta_title || "").length}/60`;
 
   document.getElementById("preview-seo-desc").textContent = post.yoast_meta_desc || "No description set";
   document.getElementById("preview-seo-desc-count").textContent = `${(post.yoast_meta_desc || "").length}/155`;
 
-  // Taxonomies
   document.getElementById("preview-categories").innerHTML = (post.categories || [])
     .map(c => `<span class="badge badge-info"><i data-lucide="folder"></i> ${escapeHtml(c)}</span>`).join("");
   
   document.getElementById("preview-tags").innerHTML = (post.tags || [])
     .map(t => `<span class="badge badge-neutral">#${escapeHtml(t)}</span>`).join("");
 
-  // Featured Image
   const featBox = document.getElementById("preview-featured-box");
-  if (post.featured_image && post.featured_image.url) {
-    featBox.innerHTML = `<img src="${escapeHtml(post.featured_image.url)}" alt="${escapeHtml(post.title)}" />`;
+  if (post.featured_image) {
+    const src = post.featured_image.previewUrl || post.featured_image.url;
+    featBox.innerHTML = `<img src="${escapeHtml(src)}" alt="${escapeHtml(post.title)}" />`;
   } else {
     featBox.innerHTML = "";
   }
 
-  // Render HTML content with images replaced
   const renderedHtml = replaceImagePlaceholdersInHtml(post.content_html, post.mapped_images, state.imagePool);
   document.getElementById("preview-html-content").innerHTML = renderedHtml;
 
@@ -588,8 +706,7 @@ function savePostEdit() {
   post.post_date = formatInputToFormattedDate(document.getElementById("edit-post-date").value);
   post.content_html = document.getElementById("edit-post-content").value;
 
-  // Re-run media auto-matching for edited content
-  const updatedPost = autoMatchPostMedia(post, state.imagePool);
+  const updatedPost = autoMatchPostMedia(post, state.imagePool, state.settings);
   const index = state.posts.findIndex(p => p.id === postId);
   state.posts[index] = updatedPost;
 
@@ -600,37 +717,82 @@ function savePostEdit() {
 }
 
 function saveNewImage() {
-  const url = document.getElementById("image-url").value.trim();
-  const title = document.getElementById("image-title").value.trim() || "Untitled Image Asset";
+  const rawFilename = document.getElementById("image-filename").value.trim() || "image.jpg";
+  const filename = slugifyFilename(rawFilename);
+  const manualUrl = document.getElementById("image-url").value.trim();
+  const title = document.getElementById("image-title").value.trim() || "Image Asset";
   const tagsStr = document.getElementById("image-tags").value.trim();
 
-  if (!url || !tagsStr) {
-    showToast("Please provide both Image URL and keyword tags.", "error");
+  if (!tagsStr) {
+    showToast("Please provide keyword tags for matching.", "error");
     return;
   }
 
+  const computedUrl = manualUrl || buildWpUploadUrl(filename, state.settings);
+
   const newImg = {
     id: "img_" + Date.now(),
-    url: url,
+    filename: filename,
+    url: computedUrl,
     title: title,
     tags: tagsStr.split(",").map(t => t.trim().toLowerCase()).filter(Boolean)
   };
 
   state.imagePool.push(newImg);
-  
-  // Re-run auto match across all posts
-  state.posts = state.posts.map(p => autoMatchPostMedia(p, state.imagePool));
+  state.posts = state.posts.map(p => autoMatchPostMedia(p, state.imagePool, state.settings));
 
   saveState();
   renderAll();
   closeModal();
 
-  // Reset Form
+  document.getElementById("image-filename").value = "";
   document.getElementById("image-url").value = "";
   document.getElementById("image-title").value = "";
   document.getElementById("image-tags").value = "";
 
-  showToast("Image added to pool and auto-matched to post placeholders!", "success");
+  showToast("Image asset saved to pool!", "success");
+}
+
+function populateSettingsForm() {
+  document.getElementById("setting-domain").value = state.settings.domain || "https://briantsofrisborough.co.uk";
+  document.getElementById("setting-blog-path").value = state.settings.blogSubpath || "/blog/";
+  document.getElementById("setting-upload-year").value = state.settings.uploadYear || "2026";
+  document.getElementById("setting-upload-month").value = state.settings.uploadMonth || "06";
+
+  const bankLines = (state.settings.linksBank || []).map(item => `${item.url} | ${item.label}`).join("\n");
+  document.getElementById("setting-links-bank").value = bankLines;
+}
+
+function saveSiteSettings() {
+  const domain = document.getElementById("setting-domain").value.trim().replace(/\/$/, "");
+  const blogSubpath = document.getElementById("setting-blog-path").value.trim();
+  const uploadYear = document.getElementById("setting-upload-year").value.trim();
+  const uploadMonth = document.getElementById("setting-upload-month").value.trim();
+
+  const linksText = document.getElementById("setting-links-bank").value.trim();
+  const linksBank = linksText.split("\n").map(line => {
+    const parts = line.split("|");
+    const url = parts[0] ? parts[0].trim() : "";
+    const label = parts[1] ? parts[1].trim() : url;
+    return url ? { url, label } : null;
+  }).filter(Boolean);
+
+  state.settings = { domain, blogSubpath, uploadYear, uploadMonth, linksBank };
+
+  // Re-calculate image URLs for image pool
+  state.imagePool = state.imagePool.map(img => ({
+    ...img,
+    url: buildWpUploadUrl(img.filename || img.url.split('/').pop(), state.settings)
+  }));
+
+  // Re-match posts
+  state.posts = state.posts.map(p => autoMatchPostMedia(p, state.imagePool, state.settings));
+
+  saveState();
+  renderAll();
+  closeModal();
+  updatePromptPreview();
+  showToast("Site settings & Internal Links Bank updated!", "success");
 }
 
 /* ==========================================================================
@@ -638,17 +800,22 @@ function saveNewImage() {
    ========================================================================== */
 
 function initGlobalHeaderActions() {
+  document.getElementById("btn-open-settings").addEventListener("click", () => {
+    openModal("modal-settings");
+  });
+
   document.getElementById("btn-load-sample").addEventListener("click", () => {
+    state.settings = { ...DEFAULT_SITE_SETTINGS };
     state.imagePool = [...SAMPLE_IMAGE_POOL];
     const parsed = parseAndValidateJSON(JSON.stringify(SAMPLE_POST_PAYLOADS));
     if (parsed.valid) {
-      state.posts = parsed.posts.map(post => autoMatchPostMedia(post, state.imagePool));
+      state.posts = parsed.posts.map(post => autoMatchPostMedia(post, state.imagePool, state.settings));
       state.posts = calculateBatchSchedule(state.posts, state.scheduleConfig);
     }
 
     saveState();
     renderAll();
-    showToast("Sample data loaded! Posts and images are ready to test.", "success");
+    showToast("Briants of Risborough sample data loaded!", "success");
     switchTab("tab-queue");
   });
 
@@ -662,6 +829,7 @@ function renderAll() {
   renderMediaPool();
   renderQueuePosts();
   updateHeaderStats();
+  updatePromptPreview();
   if (state.activeTab === "tab-export") {
     renderXmlExport();
   }
