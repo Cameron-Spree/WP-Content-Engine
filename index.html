@@ -3,16 +3,17 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WP Content Engine - v2.5.0</title>
+  <title>WP Content Engine - v2.5.1</title>
   <meta name="description" content="Construct, manage, schedule, and export bulk WordPress blog posts with Yoast SEO metadata and attached media via WXR 1.2 XML format.">
   
-  <!-- Inline SVG Favicon to immediately stop browser favicon request hanging -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏛️</text></svg>">
+  <!-- Use standard favicon.ico (fallback) to prevent browser hanging -->
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
 
-  <!-- Fonts: Cinzel (Roman Imperial Serif) + Inter + JetBrains Mono -->
+  <!-- Fonts: Async loading to prevent render/load blocking -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"></noscript>
   
   <!-- Lucide & JSZip are loaded dynamically after page load — see bottom of body -->
 
@@ -29,7 +30,7 @@
           <div class="logo-icon"><i data-lucide="landmark"></i></div>
           <div class="brand-text">
             <h1>WP Content Engine</h1>
-            <span class="version-badge" id="app-version-tag">v2.5.0 • Build 14:38</span>
+            <span class="version-badge" id="app-version-tag">v2.5.1 • Build 14:45</span>
           </div>
         </div>
       </div>
@@ -615,34 +616,34 @@ https://briantsofrisborough.co.uk/product-category/garden-machinery/lawn-mowers/
   <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- Dynamic CDN Loader: loads Lucide & JSZip AFTER page load so browser tab spinner stops immediately -->
+  <!-- Dynamic CDN Loader: loads Lucide & JSZip async so browser tab spinner stops immediately -->
   <script>
     function loadScript(src) {
       return new Promise(function(resolve, reject) {
         var s = document.createElement('script');
         s.src = src;
+        s.async = true; // Use async to prevent blocking
         s.onload = resolve;
         s.onerror = function() {
           console.warn('CDN load failed for ' + src + ', trying fallback...');
-          resolve(); // don't block app if CDN fails
+          resolve(); 
         };
-        document.head.appendChild(s);
+        document.body.appendChild(s);
       });
     }
 
-    window.addEventListener('load', function() {
+    // Use setTimeout to ensure the browser considers the initial page load complete
+    setTimeout(function() {
       Promise.all([
-        loadScript('https://unpkg.com/lucide@0.378.0/dist/umd/lucide.min.js'),
-        loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js')
+        loadScript('https://cdn.jsdelivr.net/npm/lucide@0.378.0/dist/umd/lucide.min.js'),
+        loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js')
       ]).then(function() {
-        // Initialize Lucide icons once loaded
         if (window.lucide && typeof window.lucide.createIcons === 'function') {
           window.lucide.createIcons();
         }
-        // Dispatch a custom event so app.js knows libraries are ready
         window.dispatchEvent(new CustomEvent('libs-ready'));
       });
-    });
+    }, 100); // Small delay
   </script>
 
   <!-- Application Logic Modules -->
