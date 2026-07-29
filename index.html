@@ -30,7 +30,7 @@
           <div class="logo-icon"><i data-lucide="landmark"></i></div>
           <div class="brand-text">
             <h1>WP Content Engine</h1>
-            <span class="version-badge" id="app-version-tag">v2.9.0 • Build 16:03</span>
+            <span class="version-badge" id="app-version-tag">v3.0.0 • Build 16:04</span>
           </div>
         </div>
       </div>
@@ -80,17 +80,22 @@
         </button>
         <button class="tab-btn" data-tab="tab-ingest">
           <i data-lucide="file-json"></i>
-          <span class="tab-title">II. Ingestion & Media Pool</span>
+          <span class="tab-title">II. JSON Ingestion</span>
           <span class="badge-count" id="badge-ingest-count">0</span>
+        </button>
+        <button class="tab-btn" data-tab="tab-media">
+          <i data-lucide="image"></i>
+          <span class="tab-title">III. Media Library</span>
+          <span class="badge-count" id="badge-media-count">0</span>
         </button>
         <button class="tab-btn" data-tab="tab-queue">
           <i data-lucide="calendar-clock"></i>
-          <span class="tab-title">III. Post Queue & Scheduler</span>
+          <span class="tab-title">IV. Post Queue & Scheduler</span>
           <span class="badge-count" id="badge-queue-count">0</span>
         </button>
         <button class="tab-btn" data-tab="tab-export">
           <i data-lucide="code-2"></i>
-          <span class="tab-title">IV. WXR XML Export</span>
+          <span class="tab-title">V. WXR XML Export</span>
         </button>
       </div>
     </nav>
@@ -292,6 +297,56 @@
             <div class="media-pool-grid" id="media-pool-container">
               <!-- Media assets will be rendered dynamically here -->
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: Media Library & Asset Pool -->
+      <section id="tab-media" class="tab-panel">
+        <div class="panel-header">
+          <div>
+            <h2><i data-lucide="image"></i> Media Library & Asset Pool</h2>
+            <p class="panel-subtitle">Upload, sort, rename, edit, and organize all featured cover images and in-body content media.</p>
+          </div>
+          <div class="header-buttons">
+            <label class="btn btn-secondary" for="file-upload-input-media" style="cursor: pointer;">
+              <i data-lucide="upload"></i> Upload Images
+            </label>
+            <input type="file" id="file-upload-input-media" accept="image/*" multiple class="hidden">
+            <button class="btn btn-primary" id="btn-open-add-image-media">
+              <i data-lucide="plus"></i> Add Image URL
+            </button>
+            <button class="btn btn-outline" id="btn-download-zip-media">
+              <i data-lucide="file-archive"></i> Download Media Zip (.zip)
+            </button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="form-row" style="margin-bottom: 0;">
+            <div class="form-group inline-group" style="flex: 1;">
+              <label for="media-search-input">Search Media Assets</label>
+              <input type="text" id="media-search-input" class="form-input" placeholder="Search by image title, filename, or keyword tags (e.g. stihl, chainsaw, lawnmower)...">
+            </div>
+            <div class="form-group inline-group" style="width: 200px;">
+              <label for="media-sort-select">Sort By</label>
+              <select id="media-sort-select" class="form-select">
+                <option value="newest">Newest Added</option>
+                <option value="title">Title (A-Z)</option>
+                <option value="filename">Filename (A-Z)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header-flex">
+            <h3><i data-lucide="images"></i> Media Asset Gallery</h3>
+            <span class="badge badge-info" id="media-gallery-count">0 Assets</span>
+          </div>
+
+          <div class="media-pool-grid" id="full-media-library-container" style="max-height: none;">
+            <!-- Media library cards rendered dynamically -->
           </div>
         </div>
       </section>
@@ -566,6 +621,41 @@
       <div class="modal-footer">
         <button class="btn btn-outline btn-close-modal">Cancel</button>
         <button class="btn btn-success" id="btn-save-new-image"><i data-lucide="plus-circle"></i> Save Image</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3B: Edit / Rename Image Asset -->
+  <div id="modal-edit-image" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i data-lucide="edit-3"></i> Edit / Rename Image Asset</h3>
+        <button class="btn-close-modal"><i data-lucide="x"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="edit-image-id">
+        <div class="form-group">
+          <label for="edit-image-title">Image Title / Alt Text</label>
+          <input type="text" id="edit-image-title" class="form-input">
+        </div>
+        <div class="form-group">
+          <label for="edit-image-filename">Filename (Slugified for WP URL)</label>
+          <input type="text" id="edit-image-filename" class="form-input">
+        </div>
+        <div class="form-group">
+          <label for="edit-image-tags">Keyword Tags (Comma separated for auto-matching)</label>
+          <input type="text" id="edit-image-tags" class="form-input">
+        </div>
+        <div class="form-group">
+          <label for="edit-image-url">Image URL</label>
+          <input type="text" id="edit-image-url" class="form-input">
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-close-modal">Cancel</button>
+        <button class="btn btn-primary" id="btn-save-edit-image"><i data-lucide="check"></i> Save Image Changes</button>
       </div>
     </div>
   </div>

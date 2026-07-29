@@ -304,6 +304,72 @@ function initIngestionAndMedia() {
   document.getElementById("btn-open-add-image").addEventListener("click", () => {
     openModal("modal-add-image");
   });
+
+  // Media Library Tab Event Listeners
+  const mediaFileInput = document.getElementById("file-upload-input-media");
+  if (mediaFileInput) {
+    mediaFileInput.addEventListener("change", (e) => {
+      const files = Array.from(e.target.files);
+      if (files.length === 0) return;
+
+      files.forEach(file => {
+        const filename = slugifyFilename(file.name);
+        const computedWpUrl = buildWpUploadUrl(filename, state.settings);
+        const reader = new FileReader();
+
+        reader.onload = (event) => {
+          const dataUrl = event.target.result;
+          const tags = extractTagsFromFilename(filename);
+
+          const newImg = {
+            id: "img_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4),
+            filename: filename,
+            url: computedWpUrl,
+            previewUrl: dataUrl,
+            title: file.name.split(".")[0].replace(/[-_]/g, " "),
+            tags: tags,
+            fileData: dataUrl
+          };
+
+          state.imagePool.push(newImg);
+          state.posts = state.posts.map(p => autoMatchPostMedia(p, state.imagePool, state.settings));
+
+          saveState();
+          renderAll();
+        };
+
+        reader.readAsDataURL(file);
+      });
+
+      showToast(`Uploaded ${files.length} image(s) to Media Library.`, "success");
+      mediaFileInput.value = "";
+    });
+  }
+
+  const btnAddImgMedia = document.getElementById("btn-open-add-image-media");
+  if (btnAddImgMedia) {
+    btnAddImgMedia.addEventListener("click", () => openModal("modal-add-image"));
+  }
+
+  const btnZipMedia = document.getElementById("btn-download-zip-media");
+  if (btnZipMedia) {
+    btnZipMedia.addEventListener("click", triggerMediaZipDownload);
+  }
+
+  const mediaSearchInput = document.getElementById("media-search-input");
+  if (mediaSearchInput) {
+    mediaSearchInput.addEventListener("input", renderMediaPool);
+  }
+
+  const mediaSortSelect = document.getElementById("media-sort-select");
+  if (mediaSortSelect) {
+    mediaSortSelect.addEventListener("change", renderMediaPool);
+  }
+
+  const btnSaveEditImage = document.getElementById("btn-save-edit-image");
+  if (btnSaveEditImage) {
+    btnSaveEditImage.addEventListener("click", saveImageEdit);
+  }
 }
 
 function extractTagsFromFilename(filename) {
@@ -315,19 +381,34 @@ function extractTagsFromFilename(filename) {
 
 function renderMediaPool() {
   const container = document.getElementById("media-pool-container");
-  if (!container) return;
+  const fullContainer = document.getElementById("full-media-library-container");
 
-  if (state.imagePool.length === 0) {
-    container.innerHTML = `
-      <div class="empty-placeholder" style="text-align:center; padding: 40px; color: var(--text-muted);">
-        <i data-lucide="image-off" style="width:36px; height:36px; margin-bottom:8px;"></i>
-        <p>No images in pool. Click "Upload Images" or "Add URL" to populate asset pool.</p>
-      </div>`;
-    refreshLucideIcons();
-    return;
+  let images = [...state.imagePool];
+
+  // Apply search filter if active
+  const searchInput = document.getElementById("media-search-input");
+  const query = searchInput ? searchInput.value.trim().toLowerCase() : "";
+  if (query) {
+    images = images.filter(img => 
+      img.title.toLowerCase().includes(query) ||
+      (img.filename && img.filename.toLowerCase().includes(query)) ||
+      (img.tags && img.tags.some(t => t.toLowerCase().includes(query)))
+    );
   }
 
-  container.innerHTML = state.imagePool.map(img => {
+  // Apply sorting
+  const sortSelect = document.getElementById("media-sort-select");
+  const sortBy = sortSelect ? sortSelect.value : "newest";
+  if (sortBy === "title") {
+    images.sort((a, b) => a.title.localeCompare(b.title));
+  } else if (sortBy === "filename") {
+    images.sort((a, b) => (a.filename || "").localeCompare(b.filename || ""));
+  }
+
+  const galleryCountEl = document.getElementById("media-gallery-count");
+  if (galleryCountEl) galleryCountEl.textContent = `${images.length} Asset${images.length !== 1 ? "s" : ""}`;
+
+  const renderCardHTML = (img) => {
     const displaySrc = img.previewUrl || img.url;
     return `
     <div class="media-asset-card" data-img-id="${img.id}">
@@ -343,29 +424,82 @@ function renderMediaPool() {
           ${img.tags.map(t => `<span class="tag-pill">${escapeHtml(t)}</span>`).join("")}
         </div>
         <div class="media-asset-actions">
-          <span>WP Upload Ready</span>
+          <button class="btn btn-outline btn-sm btn-edit-img" data-img-id="${img.id}" title="Edit / Rename Image">
+            <i data-lucide="edit-2"></i> Rename / Edit
+          </button>
           <button class="btn-icon-delete btn-delete-img" data-img-id="${img.id}" title="Delete Image">
             <i data-lucide="trash-2"></i>
           </button>
         </div>
       </div>
     </div>`;
-  }).join("");
+  };
 
-  container.querySelectorAll(".btn-delete-img").forEach(btn => {
-    btn.addEventListener("click", (e) => {
+  const emptyHTML = `
+    <div class="empty-placeholder" style="text-align:center; padding: 40px; color: var(--text-muted); grid-column: 1 / -1;">
+      <i data-lucide="image-off" style="width:36px; height:36px; margin-bottom:8px;"></i>
+      <p>No images match your query. Click "Upload Images" or "Add URL" to populate asset pool.</p>
+    </div>`;
+
+  const cardsHTML = images.length > 0 ? images.map(renderCardHTML).join("") : emptyHTML;
+
+  if (container) container.innerHTML = cardsHTML;
+  if (fullContainer) fullContainer.innerHTML = cardsHTML;
+
+  // Attach event handlers
+  document.querySelectorAll(".btn-delete-img").forEach(btn => {
+    btn.onclick = (e) => {
       e.stopPropagation();
       deleteImageFromPool(btn.getAttribute("data-img-id"));
-    });
+    };
+  });
+
+  document.querySelectorAll(".btn-edit-img").forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      openImageEdit(btn.getAttribute("data-img-id"));
+    };
   });
 
   refreshLucideIcons();
 }
 
+function openImageEdit(imageId) {
+  const img = state.imagePool.find(i => i.id === imageId);
+  if (!img) return;
+
+  document.getElementById("edit-image-id").value = img.id;
+  document.getElementById("edit-image-title").value = img.title || "";
+  document.getElementById("edit-image-filename").value = img.filename || "";
+  document.getElementById("edit-image-tags").value = (img.tags || []).join(", ");
+  document.getElementById("edit-image-url").value = img.url || "";
+
+  openModal("modal-edit-image");
+}
+
+function saveImageEdit() {
+  const imageId = document.getElementById("edit-image-id").value;
+  const img = state.imagePool.find(i => i.id === imageId);
+  if (!img) return;
+
+  const rawFilename = document.getElementById("edit-image-filename").value.trim() || img.filename;
+  img.filename = slugifyFilename(rawFilename);
+  img.title = document.getElementById("edit-image-title").value.trim() || img.title;
+  img.tags = document.getElementById("edit-image-tags").value.split(",").map(t => t.trim().toLowerCase()).filter(Boolean);
+  img.url = document.getElementById("edit-image-url").value.trim() || buildWpUploadUrl(img.filename, state.settings);
+
+  state.posts = state.posts.map(p => autoMatchPostMedia(p, state.imagePool, state.settings));
+
+  saveState();
+  renderAll();
+  closeModal();
+  showToast("Image details & filename updated!", "success");
+}
+
 function deleteImageFromPool(imageId) {
   state.imagePool = state.imagePool.filter(i => i.id !== imageId);
   saveState();
-  renderMediaPool();
+  renderAll();
   showToast("Image removed from asset pool.", "info");
 }
 
@@ -868,6 +1002,8 @@ function updateHeaderStats() {
   document.getElementById("count-ready").textContent = state.posts.length;
 
   document.getElementById("badge-ingest-count").textContent = state.posts.length;
+  const mediaBadge = document.getElementById("badge-media-count");
+  if (mediaBadge) mediaBadge.textContent = state.imagePool.length;
   document.getElementById("badge-queue-count").textContent = state.posts.length;
 }
 
