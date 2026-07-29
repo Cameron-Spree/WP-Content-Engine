@@ -1,6 +1,6 @@
 /**
  * JSON Syntax, Repair & Schema Validator for WP Content Engine
- * Auto-repairs unclosed HTML tags, missing paragraph breaks, and AI chatbot JSON quirks.
+ * Auto-extracts JSON payloads even if surrounded by prompt text or chatbot commentary.
  */
 
 export function parseAndValidateJSON(rawInput) {
@@ -32,7 +32,7 @@ export function parseAndValidateJSON(rawInput) {
       } else {
         return {
           valid: false,
-          error: `JSON Syntax Error: ${parseError || err2.message}. (Tip: Try regenerating prompt in Tab I).`,
+          error: `JSON Syntax Error: ${parseError || err2.message}. (Note: Make sure to copy the JSON response returned by the chatbot, not the prompt instruction).`,
           rawError: parseError || err2.message
         };
       }
@@ -58,7 +58,6 @@ export function parseAndValidateJSON(rawInput) {
       return { valid: false, error: `${postIndexLabel}Missing or invalid 'content_html' string.` };
     }
 
-    // Auto fix unclosed <a> tags and add paragraph wrappers if needed
     let cleanContentHtml = cleanHtmlMarkdownLinks(p.content_html);
     cleanContentHtml = autoFixUnclosedAnchorTags(cleanContentHtml);
     cleanContentHtml = autoWrapParagraphs(cleanContentHtml);
@@ -101,12 +100,33 @@ export function parseAndValidateJSON(rawInput) {
 function preCleanAIJsonString(raw) {
   let str = raw.trim();
 
+  // 1. Strip markdown fences
   if (str.startsWith("```json")) {
     str = str.replace(/^```json\s*/i, "").replace(/\s*```$/, "");
   } else if (str.startsWith("```")) {
     str = str.replace(/^```\s*/, "").replace(/\s*```$/, "");
   }
 
+  // 2. Automatically extract JSON object {...} or array [...] if prompt text or chatbot commentary surrounds it
+  const firstBrace = str.indexOf("{");
+  const firstBracket = str.indexOf("[");
+  
+  let startIdx = -1;
+  let endIdx = -1;
+
+  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    startIdx = firstBrace;
+    endIdx = str.lastIndexOf("}");
+  } else if (firstBracket !== -1) {
+    startIdx = firstBracket;
+    endIdx = str.lastIndexOf("]");
+  }
+
+  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+    str = str.substring(startIdx, endIdx + 1);
+  }
+
+  // 3. Fix markdown links inside href attribute like href="[http://...](http://...)"
   str = str.replace(/href=["']\[(?:https?:\/\/[^\]]+)\]\((https?:\/\/[^\)]+)\)["']/gi, 'href=\'$1\'');
   str = str.replace(/href=\["(?:https?:\/\/[^\]]+)"\]\((https?:\/\/[^\)]+)\)/gi, 'href=\'$1\'');
 
@@ -144,12 +164,10 @@ function autoFixUnclosedAnchorTags(html) {
   if (!html) return "";
   let text = html;
 
-  // Fix unclosed <a> tags before next block tag (<h1..6>, <p>, <div>, <table>, <ul>, <ol>, <blockquote>)
   const blockTagRegex = /(<a\s+href=['"][^'"]+['"][^>]*>)([\s\S]*?)(?=(<a\s|<h[1-6]|<p|<div|<table|<ul|<ol|<blockquote|$))/gi;
   
   text = text.replace(blockTagRegex, (match, openTag, content) => {
     if (!content.includes("</a>")) {
-      // Find suitable anchor phrase or close around initial phrase
       return `${openTag}${content}</a>`;
     }
     return match;
@@ -162,12 +180,10 @@ function autoWrapParagraphs(html) {
   if (!html) return "";
   let text = html.trim();
 
-  // If text already has <p> or <h2> tags, leave structure intact
   if (/<p>|<h[1-6]>|<div>|<table>|<ul>|<ol>/i.test(text)) {
     return text;
   }
 
-  // Split by double newlines or single newlines and wrap in <p>
   const paragraphs = text
     .split(/\n\s*\n/)
     .map(p => p.trim())
