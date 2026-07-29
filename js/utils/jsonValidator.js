@@ -108,8 +108,13 @@ function preCleanAIJsonString(raw) {
   }
 
   // 2. Automatically extract JSON object {...} or array [...] if prompt text or chatbot commentary surrounds it
+  // Distinguish valid JSON array '[' from markdown links like [url](url)
   const firstBrace = str.indexOf("{");
-  const firstBracket = str.indexOf("[");
+  let firstBracket = -1;
+  const bracketMatch = str.match(/\[\s*(?=[{\"\d\]]|-\d|true|false|null)/);
+  if (bracketMatch) {
+    firstBracket = bracketMatch.index;
+  }
   
   let startIdx = -1;
   let endIdx = -1;
@@ -126,9 +131,9 @@ function preCleanAIJsonString(raw) {
     str = str.substring(startIdx, endIdx + 1);
   }
 
-  // 3. Fix markdown links inside href attribute like href="[http://...](http://...)"
-  str = str.replace(/href=["']\[(?:https?:\/\/[^\]]+)\]\((https?:\/\/[^\)]+)\)["']/gi, 'href=\'$1\'');
-  str = str.replace(/href=\["(?:https?:\/\/[^\]]+)"\]\((https?:\/\/[^\)]+)\)/gi, 'href=\'$1\'');
+  // 3. Fix markdown links inside href attribute like href="[url](url)" or href="[http://...](http://...)"
+  str = str.replace(/href=["']\[[^\]]+\]\(([^)]+)\)["']/gi, 'href=\'$1\'');
+  str = str.replace(/href=\["[^\]]+"\]\(([^)]+)\)/gi, 'href=\'$1\'');
 
   return str;
 }
@@ -136,6 +141,9 @@ function preCleanAIJsonString(raw) {
 function repairAIJsonString(raw) {
   let str = raw;
   str = str.replace(/(?<=:\s*"[^"]*)\n(?=[^"]*")/g, "\\n");
+
+  // Replace markdown links in href attributes within content_html
+  str = str.replace(/href=["']\[[^\]]+\]\(([^)]+)\)["']/gi, 'href=\'$1\'');
 
   const contentMatch = str.match(/"content_html"\s*:\s*"(.*?)"\s*(\}\s*$|\,\s*"[a-zA-Z0-9_]+"\s*:)/s);
   if (contentMatch) {
@@ -153,8 +161,8 @@ function cleanHtmlMarkdownLinks(html) {
   if (!html) return "";
   let clean = html;
 
-  clean = clean.replace(/href=["']\[(?:https?:\/\/[^\]]+)\]\((https?:\/\/[^\)]+)\)["']/gi, 'href=\'$1\'');
-  clean = clean.replace(/href=\["(?:https?:\/\/[^\]]+)"\]\((https?:\/\/[^\)]+)\)/gi, 'href=\'$1\'');
+  clean = clean.replace(/href=["']\[[^\]]+\]\(([^)]+)\)["']/gi, 'href=\'$1\'');
+  clean = clean.replace(/href=\["[^\]]+"\]\(([^)]+)\)/gi, 'href=\'$1\'');
   clean = clean.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href=\'$2\'>$1</a>');
 
   return clean;
