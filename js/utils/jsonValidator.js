@@ -170,35 +170,121 @@ function cleanHtmlMarkdownLinks(html) {
 
 function autoFixUnclosedAnchorTags(html) {
   if (!html) return "";
-  let text = html;
+  return smartHtmlReconstructor(html);
+}
 
-  const blockTagRegex = /(<a\s+href=['"][^'"]+['"][^>]*>)([\s\S]*?)(?=(<a\s|<h[1-6]|<p|<div|<table|<ul|<ol|<blockquote|$))/gi;
-  
-  text = text.replace(blockTagRegex, (match, openTag, content) => {
-    if (!content.includes("</a>")) {
-      return `${openTag}${content}</a>`;
+function smartHtmlReconstructor(html) {
+  if (!html) return "";
+  let text = html.trim();
+
+  // 1. Fix malformed HTML tags like blockquote> or </blockquote or <h2Title
+  text = text.replace(/(?<!<)blockquote>/gi, "<blockquote>");
+  text = text.replace(/<\/blockquote(?!>)/gi, "</blockquote>");
+
+  // 2. Fix unclosed <a> tags
+  // Match <a href='URL'>... and find where </a> should be inserted
+  text = text.replace(/<a\s+href=['"]([^'"]+)['"]\s*>([\s\S]*?)(?=(<a\s|<\/a>|<h[1-6]|<p|<div|<table|<ul|<ol|<blockquote>|$))/gi, (match, url, innerText) => {
+    // If it already has </a> inside innerText, leave it
+    if (innerText.includes("</a>")) {
+      return match;
     }
-    return match;
+
+    // Try to find a logical anchor phrase stopping point
+    // A) If punctuation exists (. , : ! ?), close before or right after it
+    // B) Otherwise close after 2 to 6 words
+    let anchorText = innerText;
+    let remainder = "";
+
+    // Common category labels to match exactly
+    const knownLabels = [
+      "STIHL Power Tools & Machinery", "STIHL Power Tools", "STIHL Machinery",
+      "Lawn Mowers Range", "Lawn Mowers", "Chainsaws", "STIHL KombiSystem Multi-Tools", "KombiSystem",
+      "2-Stroke Oils, MotoMix & Maintenance", "2-Stroke Oils", "MotoMix",
+      "Chainsaw Protective Boots, Trousers & Helmets", "Chainsaw Protective Clothing",
+      "Machinery Spares & Replacement Parts", "Machinery Spares",
+      "Garden Machinery Repairs & Servicing", "Garden Machinery Repairs", "Garden Machinery"
+    ];
+
+    let matchedLabel = null;
+    for (const label of knownLabels) {
+      if (innerText.toLowerCase().startsWith(label.toLowerCase())) {
+        matchedLabel = innerText.substring(0, label.length);
+        remainder = innerText.substring(label.length);
+        break;
+      }
+    }
+
+    if (matchedLabel) {
+      anchorText = matchedLabel;
+    } else {
+      // Find first punctuation or max 6 words
+      const punctMatch = innerText.match(/^([^.,:!?]{3,60}?)([.,:!?]|\s+[A-Z]|\s*$)/);
+      if (punctMatch) {
+        anchorText = punctMatch[1].trim();
+        remainder = innerText.substring(anchorText.length);
+      } else {
+        const words = innerText.trim().split(/\s+/);
+        if (words.length > 6) {
+          anchorText = words.slice(0, 5).join(" ");
+          remainder = " " + words.slice(5).join(" ");
+        }
+      }
+    }
+
+    return `<a href='${url}'>${anchorText}</a>${remainder}`;
   });
+
+  // 3. Fix missing paragraph & heading breaks
+  // If the text lacks <p> or <h2> tags, auto-detect smashed headers and wrap sections
+  if (!/<p>|<h[1-6]>|<div>|<table>|<ul>|<ol>/i.test(text)) {
+    text = splitSmashedHeadingsAndParagraphs(text);
+  }
 
   return text;
 }
 
+function splitSmashedHeadingsAndParagraphs(rawText) {
+  let text = rawText.trim();
+
+  // Known heading phrases to extract as <h2>
+  const knownHeadings = [
+    "Choosing the Right STIHL Machinery for Your Garden",
+    "Essential Maintenance: Chainsaws & Lawnmowers",
+    "Professional Servicing & Genuine Spares at Briants",
+    "Routine Chainsaw Maintenance:",
+    "Safety Equipment:",
+    "Seasonal Lawnmower Service:",
+    "Equipment CategoryRecommended STIHL SolutionKey Application"
+  ];
+
+  // Insert linebreaks before known headings or Title Case sentences
+  knownHeadings.forEach(h => {
+    const regex = new RegExp(`([^\\n>])(${escapeRegExp(h)})`, 'g');
+    text = text.replace(regex, '$1\n\n<h2>$2</h2>\n\n');
+  });
+
+  // Also detect Title Case phrases following periods without spacing: .Choosing, .Essential, .Professional
+  text = text.replace(/([a-z0-9>])\.([A-Z][a-zA-Z\s]{10,60})(?=[A-Z][a-z])/g, '$1.\n\n<h2>$2</h2>\n\n');
+
+  // Wrap all non-heading text blocks into <p>...</p>
+  const blocks = text.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+  const formatted = blocks.map(block => {
+    if (block.startsWith("<h") || block.startsWith("<blockquote") || block.startsWith("<table") || block.startsWith("<ul") || block.startsWith("<ol")) {
+      return block;
+    }
+    return `<p>${block}</p>`;
+  });
+
+  return formatted.join("\n\n");
+}
+
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function autoWrapParagraphs(html) {
   if (!html) return "";
-  let text = html.trim();
-
-  if (/<p>|<h[1-6]>|<div>|<table>|<ul>|<ol>/i.test(text)) {
-    return text;
-  }
-
-  const paragraphs = text
-    .split(/\n\s*\n/)
-    .map(p => p.trim())
-    .filter(Boolean)
-    .map(p => `<p>${p}</p>`);
-
-  return paragraphs.join("\n");
+  return html;
 }
 
 function fallbackRegexExtractPost(raw) {

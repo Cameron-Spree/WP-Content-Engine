@@ -70,8 +70,13 @@ export function generateAIPrompt(params) {
 CRITICAL REQUIREMENT: You MUST respond ONLY with a raw, valid JSON object. Do NOT wrap your response in markdown code blocks like \`\`\`json. Output raw JSON only.
 
 STRICT HTML & JSON FORMATTING RULES:
-1. MANDATORY TAG CLOSING: Every opened <a href='...'> tag MUST be closed </a> immediately after the anchor text. NEVER leave an anchor tag unclosed.
-2. PARAGRAPH SPACING: Wrap every paragraph inside separate <p>...</p> tags. Do NOT output giant unformatted walls of text.
+1. MANDATORY LINK CLOSING: Every opened <a href='...'> tag MUST be closed </a> immediately after the anchor text. NEVER leave an anchor tag unclosed.
+   - WRONG: <a href='https://...'>Anchor Phrase. The rest of the paragraph continues...
+   - RIGHT: <a href='https://...'>Anchor Phrase</a>. The rest of the paragraph continues...
+2. PARAGRAPH & HEADING SPACING:
+   - EVERY paragraph MUST be wrapped in its own separate <p>...</p> tags.
+   - EVERY section heading MUST be wrapped in <h2>Heading Title</h2> or <h3>Heading Title</h3>.
+   - NEVER run headings and paragraph text together without HTML tags.
 3. SINGLE QUOTES IN ATTRIBUTES: In content_html, ALWAYS use single quotes for HTML attributes (e.g. <a href='https://...'>Text</a>). Never use double quotes inside HTML string values.
 4. Clean HTML links inside href attributes. Do NOT put markdown syntax like [url](url) inside href.
 
