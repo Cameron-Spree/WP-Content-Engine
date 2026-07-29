@@ -1,5 +1,6 @@
 /**
  * Sample Data for WP Content Engine (Briants of Risborough Edition)
+ * Includes scraped category, brand, and machinery internal link bank
  */
 
 export const DEFAULT_SITE_SETTINGS = {
@@ -8,10 +9,17 @@ export const DEFAULT_SITE_SETTINGS = {
   uploadYear: "2026",
   uploadMonth: "06",
   linksBank: [
-    { url: "https://briantsofrisborough.co.uk/garden-machinery", label: "STIHL Garden Machinery Range" },
-    { url: "https://briantsofrisborough.co.uk/chainsaws", label: "Professional & Domestic Chainsaws" },
-    { url: "https://briantsofrisborough.co.uk/lawnmowers", label: "Lawnmowers & Robotic Mowers" },
-    { url: "https://briantsofrisborough.co.uk/servicing", label: "Machinery Servicing & Repairs" }
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/", label: "Garden Machinery Range" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/chainsaws-and-accessories/", label: "Chainsaws & Accessories" },
+    { url: "https://briantsofrisborough.co.uk/robotic-mowers/", label: "Robotic Lawnmowers & iMOW" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/cordless-garden-machinery/", label: "Cordless Battery Garden Machinery" },
+    { url: "https://briantsofrisborough.co.uk/machinery-repairs/", label: "Garden Machinery Repairs & Servicing" },
+    { url: "https://briantsofrisborough.co.uk/product-category/arborist-equipment/", label: "Arborist & Forestry Equipment" },
+    { url: "https://briantsofrisborough.co.uk/product-category/brand/stihl/", label: "STIHL Power Tools & Machinery" },
+    { url: "https://briantsofrisborough.co.uk/product-category/milwaukee/", label: "Milwaukee Power Tools & Outdoor Gear" },
+    { url: "https://briantsofrisborough.co.uk/product-category/fencing-and-timber/", label: "Fencing & Timber Products" },
+    { url: "https://briantsofrisborough.co.uk/product-category/ppe/chainsaw-protective-clothing/", label: "Chainsaw Protective PPE & Safety Gear" },
+    { url: "https://briantsofrisborough.co.uk/brands/silky/", label: "Silky Professional Pruning Saws" }
   ]
 };
 
@@ -51,7 +59,7 @@ export const SAMPLE_POST_PAYLOADS = [
 <p>Cutting down a tree requires proper preparation, safety gear, and reliable equipment. Before starting any felling work, ensure your workspace is clear and your equipment is fully serviced.</p>
 
 <h2>1. Choosing the Right Safety Gear & Equipment</h2>
-<p>Always equip yourself with chainsaw-resistant trousers, helmet with visor, ear defenders, and anti-vibration gloves. For professional equipment recommendations, explore our <a href="https://briantsofrisborough.co.uk/chainsaws">Professional & Domestic Chainsaws</a> range.</p>
+<p>Always equip yourself with chainsaw-resistant trousers, helmet with visor, ear defenders, and anti-vibration gloves. For professional equipment recommendations, explore our <a href="https://briantsofrisborough.co.uk/product-category/garden-machinery/chainsaws-and-accessories/">Chainsaws & Accessories</a> range.</p>
 
 <h2>2. Assessing the Tree & Felling Plan</h2>
 <p>Examine the natural lean of the tree, wind direction, and branch distribution. Establish a clear escape route at a 45-degree angle behind the planned direction of fall.</p>
@@ -84,7 +92,7 @@ export const SAMPLE_POST_PAYLOADS = [
 </table>
 
 <h2>3. Executing the Directional Felling Cut</h2>
-<p>Make the directional notch facing the direction you want the tree to fall. For routine equipment checkups or chain sharpening, visit our <a href="https://briantsofrisborough.co.uk/servicing">Machinery Servicing & Repairs</a> department.</p>
+<p>Make the directional notch facing the direction you want the tree to fall. For routine equipment checkups or chain sharpening, visit our <a href="https://briantsofrisborough.co.uk/machinery-repairs/">Garden Machinery Repairs & Servicing</a> department.</p>
 `,
     image_placeholders: []
   },
@@ -105,7 +113,7 @@ export const SAMPLE_POST_PAYLOADS = [
   <li><strong>Spark Plug & Air Filter Check:</strong> Ensure easy starting and optimal fuel efficiency.</li>
 </ul>
 
-<p>Discover our full range of <a href="https://briantsofrisborough.co.uk/lawnmowers">Lawnmowers & Robotic Mowers</a> or contact our service desk in Princes Risborough for expert assistance.</p>
+<p>Discover our full range of <a href="https://briantsofrisborough.co.uk/robotic-mowers/">Robotic Lawnmowers & iMOW</a> or visit our showroom in Princes Risborough for expert assistance.</p>
 `,
     image_placeholders: []
   }
