@@ -182,27 +182,22 @@ function smartHtmlReconstructor(html) {
   text = text.replace(/<\/blockquote(?!>)/gi, "</blockquote>");
 
   // 2. Fix unclosed <a> tags
-  // Match <a href='URL'>... and find where </a> should be inserted
   text = text.replace(/<a\s+href=['"]([^'"]+)['"]\s*>([\s\S]*?)(?=(<a\s|<\/a>|<h[1-6]|<p|<div|<table|<ul|<ol|<blockquote>|$))/gi, (match, url, innerText) => {
-    // If it already has </a> inside innerText, leave it
     if (innerText.includes("</a>")) {
       return match;
     }
 
-    // Try to find a logical anchor phrase stopping point
-    // A) If punctuation exists (. , : ! ?), close before or right after it
-    // B) Otherwise close after 2 to 6 words
     let anchorText = innerText;
     let remainder = "";
 
-    // Common category labels to match exactly
     const knownLabels = [
       "STIHL Power Tools & Machinery", "STIHL Power Tools", "STIHL Machinery",
       "Lawn Mowers Range", "Lawn Mowers", "Chainsaws", "STIHL KombiSystem Multi-Tools", "KombiSystem",
       "2-Stroke Oils, MotoMix & Maintenance", "2-Stroke Oils", "MotoMix",
       "Chainsaw Protective Boots, Trousers & Helmets", "Chainsaw Protective Clothing",
       "Machinery Spares & Replacement Parts", "Machinery Spares",
-      "Garden Machinery Repairs & Servicing", "Garden Machinery Repairs", "Garden Machinery"
+      "Garden Machinery Repairs & Servicing", "Garden Machinery Repairs", "Garden Machinery",
+      "Robotic Lawnmowers & iMOW"
     ];
 
     let matchedLabel = null;
@@ -217,7 +212,6 @@ function smartHtmlReconstructor(html) {
     if (matchedLabel) {
       anchorText = matchedLabel;
     } else {
-      // Find first punctuation or max 6 words
       const punctMatch = innerText.match(/^([^.,:!?]{3,60}?)([.,:!?]|\s+[A-Z]|\s*$)/);
       if (punctMatch) {
         anchorText = punctMatch[1].trim();
@@ -234,13 +228,145 @@ function smartHtmlReconstructor(html) {
     return `<a href='${url}'>${anchorText}</a>${remainder}`;
   });
 
-  // 3. Fix missing paragraph & heading breaks
-  // If the text lacks <p> or <h2> tags, auto-detect smashed headers and wrap sections
-  if (!/<p>|<h[1-6]>|<div>|<table>|<ul>|<ol>/i.test(text)) {
-    text = splitSmashedHeadingsAndParagraphs(text);
-  }
+  // 3. Reconstruct tables, CTAs, callouts, headings, and auto-hyperlinks if Gemini returned plain unformatted text
+  text = reconstructPlainAIContent(text);
 
   return text;
+}
+
+function reconstructPlainAIContent(rawText) {
+  let text = rawText.trim();
+
+  // A. Format "💡 Want to Know More?" Callout Box if present
+  text = text.replace(/(💡\s*Want to Know More\?\s*Recommended Reading)([\s\S]*?)(?=(Choosing STIHL|Visit our showroom|<p>|<h[1-6]|$))/i, (match, title, itemsText) => {
+    const lines = itemsText.split(/(?=[A-Z])/).map(l => l.trim()).filter(Boolean);
+    const listHtml = lines.map(line => {
+      // Auto link if possible
+      const linked = autoLinkText(line);
+      return `<li>${linked}</li>`;
+    }).join("\n    ");
+
+    return `<div class='callout-box want-to-know-more'>\n  <h4>${title}</h4>\n  <ul>\n    ${listHtml}\n  </ul>\n</div>\n\n`;
+  });
+
+  // B. Format CTA Button lines (e.g. "Shop STIHL Power Tools & Machinery Range →")
+  text = text.replace(/(Shop\s+[^→\n]+? Range\s*→)/gi, (match) => {
+    return `<div class='category-spotlight-box'>\n  <h3>Explore STIHL Range at Briants of Risborough</h3>\n  <a href='https://briantsofrisborough.co.uk/product-category/brand/stihl/' class='spotlight-btn'>${match}</a>\n</div>\n\n`;
+  });
+
+  // C. Format Maintenance Schedule Tables if smashed together by AI
+  text = text.replace(/(STIHL Machinery Service & Maintenance Schedule[\s\S]*?All Machinery[\s\S]*?Machinery Spares & Replacement Parts)/i, () => {
+    return `<h2>STIHL Machinery Service & Maintenance Schedule</h2>
+<div class='table-responsive'>
+  <table>
+    <thead>
+      <tr>
+        <th>Machine Type</th>
+        <th>Recommended Frequency</th>
+        <th>Key Maintenance Tasks</th>
+        <th>Essential Supplies & Spares</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>STIHL Chainsaws</td>
+        <td>Before every use & 25 Hours</td>
+        <td>Check chain tension, lubricate chain, clean air filter, sharpen teeth</td>
+        <td><a href='https://briantsofrisborough.co.uk/product-category/garden-machinery/chainsaw-accessories/'>Chainsaw Accessories & Chains</a></td>
+      </tr>
+      <tr>
+        <td>Lawnmowers</td>
+        <td>Monthly & Seasonal</td>
+        <td>Inspect blade sharpness, change oil, check spark plug, clean deck housing</td>
+        <td><a href='https://briantsofrisborough.co.uk/product-category/garden-machinery/oils-fuels-maintenance/'>2-Stroke Oils, MotoMix & Maintenance</a></td>
+      </tr>
+      <tr>
+        <td>Grass Trimmers</td>
+        <td>Every 10-15 Hours</td>
+        <td>Refill trimmer line, clean air filter, clear debris from guard</td>
+        <td><a href='https://briantsofrisborough.co.uk/product-category/garden-machinery/trimmer-lines-heads-blades/'>Trimmer Lines, Heads & Metal Blades</a></td>
+      </tr>
+      <tr>
+        <td>All Machinery</td>
+        <td>Annual / Pre-Winter</td>
+        <td>Drain old fuel or add stabilizer, full mechanical overhaul, store indoors</td>
+        <td><a href='https://briantsofrisborough.co.uk/product-category/garden-machinery/spares-and-parts/'>Machinery Spares & Replacement Parts</a></td>
+      </tr>
+    </tbody>
+  </table>
+</div>\n\n`;
+  });
+
+  // D. Extract Smashed Headings & Convert to <h2>
+  const knownHeadingPhrases = [
+    "Selecting the Right STIHL Machinery for Your Garden",
+    "Essential STIHL Maintenance & Equipment Care",
+    "When to Schedule Professional Lawnmower Service & Repairs",
+    "Explore STIHL Power Tools & Machinery at Briants of Risborough"
+  ];
+
+  knownHeadingPhrases.forEach(h => {
+    const reg = new RegExp(`([^\\n>])(${escapeRegExp(h)})`, 'g');
+    text = text.replace(reg, '$1\n\n<h2>$2</h2>\n\n');
+  });
+
+  // E. If no <p> or <h2> tags exist, split text into paragraph blocks
+  if (!/<p>|<h[1-6]>|<div>|<table>/i.test(text)) {
+    // Separate by period + TitleCase
+    text = text.replace(/([a-z0-9>])\.([A-Z][a-zA-Z\s]{12,60})(?=[A-Z][a-z])/g, '$1.\n\n<h2>$2</h2>\n\n');
+
+    const blocks = text.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
+    text = blocks.map(block => {
+      if (block.startsWith("<h") || block.startsWith("<div") || block.startsWith("<table") || block.startsWith("<blockquote") || block.startsWith("<ul")) {
+        return block;
+      }
+      return `<p>${block}</p>`;
+    }).join("\n\n");
+  }
+
+  // F. Auto-Hyperlink internal link keywords throughout the text!
+  text = autoLinkKeywordsInHtml(text);
+
+  return text;
+}
+
+function autoLinkKeywordsInHtml(html) {
+  if (!html) return "";
+  let text = html;
+
+  const linksBankMap = [
+    { label: "STIHL Power Tools & Machinery", url: "https://briantsofrisborough.co.uk/product-category/brand/stihl/" },
+    { label: "Garden Machinery Range", url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/" },
+    { label: "STIHL KombiSystem Multi-Tools", url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/kombi-system-stihl/" },
+    { label: "STIHL Chainsaws", url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/chainsaws/" },
+    { label: "Lawn Mowers Range", url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/lawn-mowers/" },
+    { label: "Robotic Lawnmowers & iMOW", url: "https://briantsofrisborough.co.uk/robotic-mowers/" },
+    { label: "2-Stroke Oils, MotoMix & Maintenance", url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/oils-fuels-maintenance/" },
+    { label: "Chainsaw Accessories & Chains", url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/chainsaw-accessories/" },
+    { label: "Chainsaw Protective Boots, Trousers & Helmets", url: "https://briantsofrisborough.co.uk/product-category/ppe/chainsaw-protective-clothing/" },
+    { label: "Trimmer Lines, Heads & Metal Blades", url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/trimmer-lines-heads-blades/" },
+    { label: "Machinery Spares & Replacement Parts", url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/spares-and-parts/" },
+    { label: "Garden Machinery Repairs & Servicing", url: "https://briantsofrisborough.co.uk/machinery-repairs/" }
+  ];
+
+  linksBankMap.forEach(item => {
+    // Only replace if phrase is NOT inside an existing <a ...>...</a> tag or <h2...> tag
+    const reg = new RegExp(`(?<!<a[^>]*>|<h2>|<h3>)(?<!href=['"])${escapeRegExp(item.label)}(?![^<]*<\\/a>)`, 'gi');
+    let replaced = false;
+    text = text.replace(reg, (match) => {
+      if (!replaced) {
+        replaced = true; // only replace first occurrence per post to prevent over-linking
+        return `<a href='${item.url}'>${match}</a>`;
+      }
+      return match;
+    });
+  });
+
+  return text;
+}
+
+function autoLinkText(textStr) {
+  return autoLinkKeywordsInHtml(textStr);
 }
 
 function splitSmashedHeadingsAndParagraphs(rawText) {
