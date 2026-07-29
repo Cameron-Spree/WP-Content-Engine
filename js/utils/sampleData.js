@@ -1,6 +1,6 @@
 /**
  * Sample Data for WP Content Engine (Briants of Risborough Edition)
- * Includes scraped category, brand, and machinery internal link bank
+ * Includes comprehensive scraped machinery categories and brand internal link bank
  */
 
 export const DEFAULT_SITE_SETTINGS = {
@@ -11,15 +11,24 @@ export const DEFAULT_SITE_SETTINGS = {
   linksBank: [
     { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/", label: "Garden Machinery Range" },
     { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/chainsaws-and-accessories/", label: "Chainsaws & Accessories" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/lawnmowers/", label: "Lawnmowers (Petrol, Electric & Ride-On)" },
     { url: "https://briantsofrisborough.co.uk/robotic-mowers/", label: "Robotic Lawnmowers & iMOW" },
-    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/cordless-garden-machinery/", label: "Cordless Battery Garden Machinery" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/hedgetrimmers/", label: "Hedge Trimmers & Long-Reach Cutters" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/leaf-blowers-vacuums/", label: "Leaf Blowers & Shredder Vacuums" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/brushcutters-strimmers/", label: "Brushcutters & Grass Strimmers" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/pole-pruners/", label: "Pole Pruners & Telescopic Saw Tools" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/ground-preparation/", label: "Tillers, Scarifiers & Cultivators" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/cordless-garden-machinery/", label: "Cordless Battery Powered Machinery" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/batteries-chargers/", label: "STIHL & Milwaukee Batteries & Chargers" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/maintenance-tools-and-accessories/", label: "2-Stroke Oils, Chainsaw Chains & Spare Parts" },
     { url: "https://briantsofrisborough.co.uk/machinery-repairs/", label: "Garden Machinery Repairs & Servicing" },
-    { url: "https://briantsofrisborough.co.uk/product-category/arborist-equipment/", label: "Arborist & Forestry Equipment" },
+    { url: "https://briantsofrisborough.co.uk/product-category/arborist-equipment/", label: "Arborist & Forestry Climbing Equipment" },
+    { url: "https://briantsofrisborough.co.uk/product-category/forestry-equipment/silky-saws/", label: "Silky Pruning Saws & Hand Saws" },
+    { url: "https://briantsofrisborough.co.uk/product-category/forestry-equipment/chainsaw-mills-for-timber-milling/", label: "Chainsaw Mills & Sawhorses" },
     { url: "https://briantsofrisborough.co.uk/product-category/brand/stihl/", label: "STIHL Power Tools & Machinery" },
     { url: "https://briantsofrisborough.co.uk/product-category/milwaukee/", label: "Milwaukee Power Tools & Outdoor Gear" },
     { url: "https://briantsofrisborough.co.uk/product-category/fencing-and-timber/", label: "Fencing & Timber Products" },
-    { url: "https://briantsofrisborough.co.uk/product-category/ppe/chainsaw-protective-clothing/", label: "Chainsaw Protective PPE & Safety Gear" },
-    { url: "https://briantsofrisborough.co.uk/brands/silky/", label: "Silky Professional Pruning Saws" }
+    { url: "https://briantsofrisborough.co.uk/product-category/ppe/chainsaw-protective-clothing/", label: "Chainsaw Protective Boots, Trousers & Helmets" }
   ]
 };
 
