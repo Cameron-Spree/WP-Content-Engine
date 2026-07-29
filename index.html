@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WP Content Engine - Bulk WordPress Post & WXR XML Generator</title>
+  <meta name="description" content="Construct, manage, schedule, and export bulk WordPress blog posts with Yoast SEO metadata and attached media via WXR 1.2 XML format.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+
+  <div id="app">
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="header-left">
+        <div class="brand-logo">
+          <div class="logo-icon"><i data-lucide="layers"></i></div>
+          <div class="brand-text">
+            <h1>WP Content Engine</h1>
+            <span class="version-badge">WXR 1.2 Spec</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="header-stats">
+        <div class="stat-pill" id="stat-total-posts">
+          <i data-lucide="file-text"></i>
+          <span class="stat-label">Posts:</span>
+          <span class="stat-value" id="count-total">0</span>
+        </div>
+        <div class="stat-pill" id="stat-scheduled">
+          <i data-lucide="calendar"></i>
+          <span class="stat-label">Scheduled:</span>
+          <span class="stat-value" id="count-scheduled">0</span>
+        </div>
+        <div class="stat-pill" id="stat-media">
+          <i data-lucide="image"></i>
+          <span class="stat-label">Media Assets:</span>
+          <span class="stat-value" id="count-media">0</span>
+        </div>
+        <div class="stat-pill status-ready" id="stat-ready">
+          <i data-lucide="check-circle-2"></i>
+          <span class="stat-label">Export Ready:</span>
+          <span class="stat-value" id="count-ready">0</span>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn btn-secondary btn-sm" id="btn-load-sample">
+          <i data-lucide="sparkles"></i> Load Sample Data
+        </button>
+        <button class="btn btn-primary btn-sm" id="btn-quick-export">
+          <i data-lucide="download"></i> Export WXR XML
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Navigation Tabs -->
+    <nav class="nav-tabs-container">
+      <div class="nav-tabs">
+        <button class="tab-btn active" data-tab="tab-prompt">
+          <i data-lucide="bot"></i>
+          <span class="tab-title">1. AI Prompt Generator</span>
+        </button>
+        <button class="tab-btn" data-tab="tab-ingest">
+          <i data-lucide="file-json"></i>
+          <span class="tab-title">2. Ingestion & Media Pool</span>
+          <span class="badge-count" id="badge-ingest-count">0</span>
+        </button>
+        <button class="tab-btn" data-tab="tab-queue">
+          <i data-lucide="calendar-clock"></i>
+          <span class="tab-title">3. Post Queue & Scheduler</span>
+          <span class="badge-count" id="badge-queue-count">0</span>
+        </button>
+        <button class="tab-btn" data-tab="tab-export">
+          <i data-lucide="code-2"></i>
+          <span class="tab-title">4. WXR XML Export</span>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Main Workspace Content -->
+    <main class="main-content">
+      
+      <!-- TAB 1: AI Prompt Generator -->
+      <section id="tab-prompt" class="tab-panel active">
+        <div class="panel-header">
+          <div>
+            <h2><i data-lucide="bot"></i> External AI Prompt Generator</h2>
+            <p class="panel-subtitle">Generate bulletproof system prompts for ChatGPT, Claude, or Gemini to produce strict JSON post payloads.</p>
+          </div>
+          <button class="btn btn-outline" id="btn-reset-prompt-form">
+            <i data-lucide="rotate-ccw"></i> Reset Inputs
+          </button>
+        </div>
+
+        <div class="grid-2col">
+          <!-- Left Form Controls -->
+          <div class="card form-card">
+            <h3><i data-lucide="sliders"></i> Prompt Parameters</h3>
+            
+            <div class="form-group">
+              <label for="prompt-topic">Blog Post Topic / Main Subject <span class="required">*</span></label>
+              <input type="text" id="prompt-topic" class="form-input" placeholder="e.g. 10 Best SEO Strategies for E-commerce in 2026" value="The Ultimate Guide to Modern WordPress SEO in 2026">
+            </div>
+
+            <div class="form-group">
+              <label for="prompt-keywords">Target Keywords (Comma Separated)</label>
+              <input type="text" id="prompt-keywords" class="form-input" placeholder="e.g. wordpress seo, yoast optimization, internal linking, site speed" value="wordpress seo, content marketing, search ranking, yoast seo, schema markup">
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="prompt-niche">Site Niche / Domain</label>
+                <input type="text" id="prompt-niche" class="form-input" placeholder="e.g. Digital Marketing, Tech, Finance" value="Digital Marketing & WordPress Development">
+              </div>
+              <div class="form-group">
+                <label for="prompt-tone">Brand Tone</label>
+                <select id="prompt-tone" class="form-select">
+                  <option value="Authoritative, professional, & actionable">Authoritative & Actionable</option>
+                  <option value="Conversational, friendly, & engaging">Conversational & Friendly</option>
+                  <option value="Technical, deep-dive, & developer-focused">Technical & Deep-dive</option>
+                  <option value="Persuasive & conversion-focused">Persuasive & Conversion-focused</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="prompt-urls">Existing Master Site URLs (Internal Linking Pool)</label>
+              <textarea id="prompt-urls" class="form-textarea" rows="3" placeholder="Paste existing site URLs (one per line or comma separated) to include internal links contextually...">https://mysite.com/blog/speed-optimization
+https://mysite.com/blog/keyword-research-guide
+https://mysite.com/services/seo-audit</textarea>
+              <span class="help-text">The AI will be instructed to hyperlink relevant context to these URLs.</span>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="prompt-word-count">Target Word Count</label>
+                <select id="prompt-word-count" class="form-select">
+                  <option value="1200-1800 words">1,200 - 1,800 words (Standard Deep Dive)</option>
+                  <option value="800-1200 words">800 - 1,200 words (Standard Post)</option>
+                  <option value="2000-3000 words">2,000 - 3,000 words (Ultimate Guide)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="prompt-images-count">Image Placeholders Needed</label>
+                <select id="prompt-images-count" class="form-select">
+                  <option value="2 to 4">2 to 4 inline images</option>
+                  <option value="1 to 2">1 to 2 inline images</option>
+                  <option value="4 to 6">4 to 6 inline images</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Generated Output -->
+          <div class="card output-card">
+            <div class="card-header-flex">
+              <h3><i data-lucide="terminal"></i> Generated AI Prompt</h3>
+              <button class="btn btn-primary" id="btn-copy-prompt">
+                <i data-lucide="copy"></i> Copy Prompt to Clipboard
+              </button>
+            </div>
+            
+            <div class="prompt-output-wrapper">
+              <textarea id="prompt-output" class="code-textarea" readonly></textarea>
+            </div>
+            <div class="prompt-instructions-banner">
+              <i data-lucide="info"></i>
+              <span>Copy this prompt and paste it directly into <strong>ChatGPT</strong>, <strong>Claude</strong>, or <strong>Gemini</strong>. Then copy the returned JSON output into Tab 2.</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: Ingestion & Smart Media Manager -->
+      <section id="tab-ingest" class="tab-panel">
+        <div class="panel-header">
+          <div>
+            <h2><i data-lucide="file-json"></i> JSON Ingestion & Smart Media Pool</h2>
+            <p class="panel-subtitle">Import raw AI JSON output and link image URLs to content placeholders and featured post media.</p>
+          </div>
+          <div class="header-buttons">
+            <button class="btn btn-secondary" id="btn-paste-sample-json">
+              <i data-lucide="file-plus"></i> Load Demo JSON Payload
+            </button>
+          </div>
+        </div>
+
+        <div class="grid-ingest">
+          <!-- Raw JSON Ingestion Panel -->
+          <div class="card">
+            <div class="card-header-flex">
+              <h3><i data-lucide="code"></i> Paste Raw Chatbot JSON</h3>
+              <span id="json-status-badge" class="badge badge-neutral">Waiting for Input</span>
+            </div>
+            <p class="card-desc">Paste the JSON response from your external AI chatbot below. Supports single object or JSON array of posts `[...]`.</p>
+
+            <div class="json-textarea-wrapper">
+              <textarea id="raw-json-input" class="code-textarea" rows="12" placeholder='Paste JSON here... Example:
+{
+  "title": "10 Best SEO Tips",
+  "slug": "10-best-seo-tips",
+  "categories": ["SEO"],
+  "tags": ["wordpress", "marketing"],
+  "yoast_meta_title": "10 Best SEO Tips for 2026",
+  "yoast_meta_desc": "Discover the top 10 SEO strategies...",
+  "content_html": "<p>Content with {{IMAGE:seo}} placeholder...</p>",
+  "image_placeholders": ["seo"]
+}'></textarea>
+            </div>
+
+            <div id="json-error-banner" class="error-banner hidden">
+              <i data-lucide="alert-triangle"></i>
+              <span id="json-error-msg">JSON syntax error</span>
+            </div>
+
+            <div class="action-bar-right">
+              <button class="btn btn-outline" id="btn-clear-json"><i data-lucide="trash-2"></i> Clear</button>
+              <button class="btn btn-success" id="btn-ingest-json"><i data-lucide="arrow-right-circle"></i> Parse & Ingest Posts</button>
+            </div>
+          </div>
+
+          <!-- Image Asset Pool Panel -->
+          <div class="card">
+            <div class="card-header-flex">
+              <div>
+                <h3><i data-lucide="image"></i> Image Asset Pool</h3>
+                <p class="card-desc">Images are auto-matched to posts based on keyword tags matching <code>{{IMAGE:keyword}}</code> placeholders.</p>
+              </div>
+              <button class="btn btn-primary btn-sm" id="btn-open-add-image">
+                <i data-lucide="plus"></i> Add Image
+              </button>
+            </div>
+
+            <div class="media-pool-grid" id="media-pool-container">
+              <!-- Media assets will be rendered dynamically here -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: Post Queue & Scheduler -->
+      <section id="tab-queue" class="tab-panel">
+        <div class="panel-header">
+          <div>
+            <h2><i data-lucide="calendar-clock"></i> Post Queue & Batch Scheduler</h2>
+            <p class="panel-subtitle">Review ingested posts, configure publication schedules, and edit post details before WXR export.</p>
+          </div>
+          <div class="header-buttons">
+            <button class="btn btn-outline btn-danger-soft" id="btn-clear-queue">
+              <i data-lucide="trash-2"></i> Clear Queue
+            </button>
+          </div>
+        </div>
+
+        <!-- Schedule Controls Bar -->
+        <div class="card schedule-bar-card">
+          <div class="schedule-bar-header">
+            <h3><i data-lucide="clock"></i> Batch Schedule Generator</h3>
+            <div class="schedule-mode-toggle">
+              <label class="radio-label">
+                <input type="radio" name="schedule-mode" value="interval" checked> Interval Schedule
+              </label>
+              <label class="radio-label">
+                <input type="radio" name="schedule-mode" value="manual"> Manual Date Pickers
+              </label>
+            </div>
+          </div>
+
+          <div id="schedule-interval-controls" class="schedule-controls-row">
+            <div class="form-group inline-group">
+              <label for="sched-start-date">Start Date</label>
+              <input type="date" id="sched-start-date" class="form-input">
+            </div>
+            <div class="form-group inline-group">
+              <label for="sched-start-time">Publish Time</label>
+              <input type="time" id="sched-start-time" class="form-input" value="09:00">
+            </div>
+            <div class="form-group inline-group">
+              <label for="sched-frequency">Interval Every</label>
+              <div class="input-unit-group">
+                <input type="number" id="sched-interval-num" class="form-input" value="3" min="1" max="365">
+                <select id="sched-interval-unit" class="form-select">
+                  <option value="days">Days</option>
+                  <option value="hours">Hours</option>
+                  <option value="weeks">Weeks</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-secondary" id="btn-apply-schedule">
+              <i data-lucide="wand-2"></i> Calculate & Batch Schedule
+            </button>
+          </div>
+        </div>
+
+        <!-- Post Queue Table / Cards -->
+        <div class="queue-list" id="queue-posts-container">
+          <!-- Queue cards will be rendered dynamically here -->
+        </div>
+      </section>
+
+      <!-- TAB 4: WXR XML Export Engine -->
+      <section id="tab-export" class="tab-panel">
+        <div class="panel-header">
+          <div>
+            <h2><i data-lucide="code-2"></i> WordPress WXR 1.2 XML Export Engine</h2>
+            <p class="panel-subtitle">Generates standard WordPress Importer XML with Yoast SEO postmeta and embedded media attachments.</p>
+          </div>
+          <div class="header-buttons">
+            <button class="btn btn-outline" id="btn-copy-xml">
+              <i data-lucide="copy"></i> Copy XML Code
+            </button>
+            <button class="btn btn-success btn-lg" id="btn-download-xml">
+              <i data-lucide="download"></i> Download WordPress XML (.xml)
+            </button>
+          </div>
+        </div>
+
+        <div class="export-meta-cards grid-3col">
+          <div class="card meta-stat-card">
+            <div class="meta-stat-icon"><i data-lucide="file-check-2"></i></div>
+            <div>
+              <span class="meta-stat-title">Posts to Export</span>
+              <h3 id="xml-stat-posts">0 Posts</h3>
+            </div>
+          </div>
+          <div class="card meta-stat-card">
+            <div class="meta-stat-icon"><i data-lucide="image"></i></div>
+            <div>
+              <span class="meta-stat-title">Media Attachments</span>
+              <h3 id="xml-stat-attachments">0 Attachments</h3>
+            </div>
+          </div>
+          <div class="card meta-stat-card">
+            <div class="meta-stat-icon"><i data-lucide="search"></i></div>
+            <div>
+              <span class="meta-stat-title">Yoast Meta Status</span>
+              <h3 id="xml-stat-yoast">100% Configured</h3>
+            </div>
+          </div>
+        </div>
+
+        <div class="card xml-preview-card">
+          <div class="card-header-flex">
+            <h3><i data-lucide="file-code"></i> Generated WXR 1.2 XML Document</h3>
+            <span class="badge badge-success"><i data-lucide="check"></i> Valid XML 1.2 Schema</span>
+          </div>
+
+          <div class="xml-editor-wrapper">
+            <textarea id="xml-output-textarea" class="code-textarea" readonly rows="20"></textarea>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- MODAL 1: Post HTML Live Preview -->
+  <div id="modal-preview" class="modal-overlay hidden">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3 id="preview-modal-title">Post Title Preview</h3>
+          <span id="preview-modal-slug" class="modal-slug-tag">/slug</span>
+        </div>
+        <button class="btn-close-modal"><i data-lucide="x"></i></button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="preview-seo-bar">
+          <div class="seo-box">
+            <strong>Yoast SEO Title:</strong>
+            <span id="preview-seo-title">---</span>
+            <span id="preview-seo-title-count" class="char-counter">0/60</span>
+          </div>
+          <div class="seo-box">
+            <strong>Yoast SEO Description:</strong>
+            <span id="preview-seo-desc">---</span>
+            <span id="preview-seo-desc-count" class="char-counter">0/155</span>
+          </div>
+        </div>
+
+        <div class="preview-taxonomy-bar">
+          <div id="preview-categories" class="tag-list"></div>
+          <div id="preview-tags" class="tag-list"></div>
+        </div>
+
+        <div class="featured-img-preview-box" id="preview-featured-box">
+          <!-- Featured Image render -->
+        </div>
+
+        <div class="html-render-container" id="preview-html-content">
+          <!-- Rendered post HTML -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: Post Edit Drawer -->
+  <div id="modal-edit" class="modal-overlay hidden">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3><i data-lucide="edit-3"></i> Edit Post Content & Metadata</h3>
+        <button class="btn-close-modal"><i data-lucide="x"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <input type="hidden" id="edit-post-id">
+        
+        <div class="form-group">
+          <label for="edit-post-title">Post Title</label>
+          <input type="text" id="edit-post-title" class="form-input">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-post-slug">URL Slug</label>
+            <input type="text" id="edit-post-slug" class="form-input">
+          </div>
+          <div class="form-group">
+            <label for="edit-post-status">WP Status</label>
+            <select id="edit-post-status" class="form-select">
+              <option value="future">future (Scheduled)</option>
+              <option value="publish">publish (Live)</option>
+              <option value="draft">draft (Draft)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-post-categories">Categories (Comma separated)</label>
+            <input type="text" id="edit-post-categories" class="form-input">
+          </div>
+          <div class="form-group">
+            <label for="edit-post-tags">Tags (Comma separated)</label>
+            <input type="text" id="edit-post-tags" class="form-input">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-yoast-title">Yoast Meta Title</label>
+            <input type="text" id="edit-yoast-title" class="form-input" maxlength="70">
+          </div>
+          <div class="form-group">
+            <label for="edit-yoast-desc">Yoast Meta Description</label>
+            <input type="text" id="edit-yoast-desc" class="form-input" maxlength="170">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="edit-post-date">Scheduled Date & Time (YYYY-MM-DD HH:MM:SS)</label>
+          <input type="datetime-local" id="edit-post-date" class="form-input">
+        </div>
+
+        <div class="form-group">
+          <label for="edit-post-content">Post Content HTML (Supports <code>{{IMAGE:keyword}}</code> tags)</label>
+          <textarea id="edit-post-content" class="code-textarea" rows="10"></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-close-modal">Cancel</button>
+        <button class="btn btn-primary" id="btn-save-edit-post"><i data-lucide="check"></i> Save Post Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: Add Image Asset -->
+  <div id="modal-add-image" class="modal-overlay hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3><i data-lucide="image-plus"></i> Add Image to Asset Pool</h3>
+        <button class="btn-close-modal"><i data-lucide="x"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="image-url">Image URL <span class="required">*</span></label>
+          <input type="url" id="image-url" class="form-input" placeholder="https://images.unsplash.com/photo-..." required>
+        </div>
+        <div class="form-group">
+          <label for="image-title">Image Title / Alt Text</label>
+          <input type="text" id="image-title" class="form-input" placeholder="e.g. Modern Developer Laptop Setup">
+        </div>
+        <div class="form-group">
+          <label for="image-tags">Matching Keywords / Tags (Comma separated) <span class="required">*</span></label>
+          <input type="text" id="image-tags" class="form-input" placeholder="e.g. seo, marketing, laptop, tech" required>
+          <span class="help-text">Placeholders like <code>{{IMAGE:seo}}</code> will auto-match with this image.</span>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-outline btn-close-modal">Cancel</button>
+        <button class="btn btn-success" id="btn-save-new-image"><i data-lucide="plus-circle"></i> Add Image to Pool</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Application Logic Modules -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
