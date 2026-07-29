@@ -1,6 +1,6 @@
 /**
  * WP Content Engine - Main Application Controller
- * Briants of Risborough Edition - Auto Links Bank, Image Upload & Path Generator, Zip Packaging
+ * Briants of Risborough Edition - Auto Links Bank, HTML Widgets, Image Upload & Path Generator
  */
 
 import { DEFAULT_SITE_SETTINGS, SAMPLE_IMAGE_POOL, SAMPLE_POST_PAYLOADS } from "./utils/sampleData.js";
@@ -111,13 +111,15 @@ function switchTab(tabId) {
 }
 
 /* ==========================================================================
-   TAB 1: AI PROMPT GENERATOR
+   TAB 1: AI PROMPT GENERATOR & HTML WIDGETS
    ========================================================================== */
 
 function initPromptGenerator() {
   const inputs = [
     "prompt-topic", "prompt-keywords", "prompt-niche",
-    "prompt-tone", "prompt-word-count", "prompt-images-count"
+    "prompt-tone", "prompt-word-count", "prompt-images-count",
+    "toggle-widget-know-more", "toggle-widget-category-spotlight",
+    "toggle-widget-table", "toggle-strict-formatting"
   ];
 
   inputs.forEach(id => {
@@ -142,6 +144,12 @@ function initPromptGenerator() {
     document.getElementById("prompt-tone").value = "Authoritative, practical, & expert guidance";
     document.getElementById("prompt-word-count").value = "800-1200 words";
     document.getElementById("prompt-images-count").value = "0";
+
+    document.getElementById("toggle-widget-know-more").checked = true;
+    document.getElementById("toggle-widget-category-spotlight").checked = true;
+    document.getElementById("toggle-widget-table").checked = true;
+    document.getElementById("toggle-strict-formatting").checked = true;
+
     updatePromptPreview();
     showToast("Prompt generator reset to defaults.", "info");
   });
@@ -164,13 +172,18 @@ function updatePromptPreview() {
     linksBank: state.settings.linksBank || [],
     queuedBatchPosts: state.posts || [],
     siteDomain: state.settings.domain,
-    blogSubpath: state.settings.blogSubpath
+    blogSubpath: state.settings.blogSubpath,
+    widgets: {
+      wantToKnowMore: document.getElementById("toggle-widget-know-more") ? document.getElementById("toggle-widget-know-more").checked : true,
+      categorySpotlight: document.getElementById("toggle-widget-category-spotlight") ? document.getElementById("toggle-widget-category-spotlight").checked : true,
+      table: document.getElementById("toggle-widget-table") ? document.getElementById("toggle-widget-table").checked : true,
+      strictFormatting: document.getElementById("toggle-strict-formatting") ? document.getElementById("toggle-strict-formatting").checked : true
+    }
   };
 
   const generated = generateAIPrompt(params);
   document.getElementById("prompt-output").value = generated;
 
-  // Update Link Bank Summary Text
   const bankCount = (state.settings.linksBank || []).length;
   const postCount = (state.posts || []).length;
   document.getElementById("internal-links-status-text").textContent = 
@@ -187,7 +200,6 @@ function initIngestionAndMedia() {
   const errorBanner = document.getElementById("json-error-banner");
   const errorMsg = document.getElementById("json-error-msg");
 
-  // Real-time live JSON validation check on typing
   rawInput.addEventListener("input", () => {
     const val = rawInput.value.trim();
     if (!val) {
@@ -232,7 +244,6 @@ function initIngestionAndMedia() {
       return;
     }
 
-    // Auto match posts with media pool using settings
     const matchedPosts = result.posts.map(post => autoMatchPostMedia(post, state.imagePool, state.settings));
     state.posts.push(...matchedPosts);
 
@@ -246,7 +257,6 @@ function initIngestionAndMedia() {
     switchTab("tab-queue");
   });
 
-  // Local File Upload Listener
   const fileInput = document.getElementById("file-upload-input");
   fileInput.addEventListener("change", (e) => {
     const files = Array.from(e.target.files);
@@ -273,7 +283,6 @@ function initIngestionAndMedia() {
 
         state.imagePool.push(newImg);
 
-        // Auto match across posts
         state.posts = state.posts.map(p => autoMatchPostMedia(p, state.imagePool, state.settings));
 
         saveState();
@@ -506,7 +515,6 @@ function renderXmlExport() {
     return;
   }
 
-  // Auto ensure media mapping for all posts
   const updatedPosts = state.posts.map(p => autoMatchPostMedia(p, state.imagePool, state.settings));
   state.posts = updatedPosts;
 
@@ -576,18 +584,13 @@ function triggerMediaZipDownload() {
   const folderName = `wp-content-uploads-${state.settings.uploadYear}-${state.settings.uploadMonth}`;
   const imgFolder = zip.folder(folderName);
 
-  let addedCount = 0;
-
   state.imagePool.forEach(img => {
     const filename = img.filename || (img.url ? img.url.split('/').pop() : "image.jpg");
 
     if (img.fileData && img.fileData.startsWith("data:")) {
-      // Base64 dataUrl
       const base64Data = img.fileData.split(',')[1];
       imgFolder.file(filename, base64Data, { base64: true });
-      addedCount++;
     } else {
-      // Fallback text reference URL file or note
       imgFolder.file(`${filename}.url.txt`, `Image URL: ${img.url}`);
     }
   });
@@ -779,13 +782,11 @@ function saveSiteSettings() {
 
   state.settings = { domain, blogSubpath, uploadYear, uploadMonth, linksBank };
 
-  // Re-calculate image URLs for image pool
   state.imagePool = state.imagePool.map(img => ({
     ...img,
     url: buildWpUploadUrl(img.filename || img.url.split('/').pop(), state.settings)
   }));
 
-  // Re-match posts
   state.posts = state.posts.map(p => autoMatchPostMedia(p, state.imagePool, state.settings));
 
   saveState();

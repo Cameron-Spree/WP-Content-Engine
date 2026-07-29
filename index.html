@@ -103,7 +103,7 @@
         <div class="panel-header">
           <div>
             <h2><i data-lucide="scroll"></i> External AI Prompt Generator</h2>
-            <p class="panel-subtitle">Generate bulletproof system prompts for ChatGPT, Claude, or Gemini. Internal links bank and batch URLs are automatically injected.</p>
+            <p class="panel-subtitle">Generate bulletproof system prompts for ChatGPT, Claude, or Gemini. Customize HTML widgets and content length below.</p>
           </div>
           <button class="btn btn-outline" id="btn-reset-prompt-form">
             <i data-lucide="rotate-ccw"></i> Reset Inputs
@@ -165,12 +165,39 @@
               </div>
             </div>
 
+            <!-- HTML Widgets & Structure Toggles -->
+            <div class="widget-toggles-card">
+              <label class="widget-toggles-title"><i data-lucide="layout-template"></i> Structure & HTML Widgets Builder</label>
+              
+              <div class="checkbox-grid">
+                <label class="checkbox-label">
+                  <input type="checkbox" id="toggle-widget-know-more" checked>
+                  <span>Include "Want to Know More?" Recommended Links Box</span>
+                </label>
+
+                <label class="checkbox-label">
+                  <input type="checkbox" id="toggle-widget-category-spotlight" checked>
+                  <span>Include Category / Product CTA Banner</span>
+                </label>
+
+                <label class="checkbox-label">
+                  <input type="checkbox" id="toggle-widget-table" checked>
+                  <span>Include HTML Data / Comparison Table</span>
+                </label>
+
+                <label class="checkbox-label">
+                  <input type="checkbox" id="toggle-strict-formatting" checked>
+                  <span>Strict Paragraph `<p>` Spacing & Mandatory Tag Closing</span>
+                </label>
+              </div>
+            </div>
+
             <div class="internal-links-summary-box">
               <div class="summary-box-header">
                 <i data-lucide="link-2"></i>
                 <strong>Internal Links Auto-Injection Status</strong>
               </div>
-              <p id="internal-links-status-text">Using 3 stored site links bank + 2 queued batch post URLs for cross-linking.</p>
+              <p id="internal-links-status-text">Using stored site links bank + queued batch post URLs for cross-linking.</p>
               <button class="btn btn-outline btn-sm" id="btn-edit-links-bank" type="button" style="margin-top: 8px;">
                 <i data-lucide="edit"></i> Manage Links Bank
               </button>
@@ -574,9 +601,8 @@
 
         <div class="form-group">
           <label for="setting-links-bank">Internal Links List (One per line: URL | Anchor Keyword / Description)</label>
-          <textarea id="setting-links-bank" class="code-textarea" rows="6" placeholder="https://briantsofrisborough.co.uk/garden-machinery | STIHL Garden Machinery Range
-https://briantsofrisborough.co.uk/chainsaws | Professional Chainsaws
-https://briantsofrisborough.co.uk/lawnmowers | Lawnmowers & Robot Mowers"></textarea>
+          <textarea id="setting-links-bank" class="code-textarea" rows="8" placeholder="https://briantsofrisborough.co.uk/product-category/garden-machinery/ | Garden Machinery Range
+https://briantsofrisborough.co.uk/product-category/garden-machinery/lawn-mowers/ | Lawnmowers Range"></textarea>
         </div>
       </div>
 

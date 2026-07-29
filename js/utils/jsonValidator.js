@@ -1,6 +1,6 @@
 /**
  * JSON Syntax, Repair & Schema Validator for WP Content Engine
- * Auto-repairs common AI chatbot quirks like unescaped quotes and markdown links in HTML.
+ * Auto-repairs unclosed HTML tags, missing paragraph breaks, and AI chatbot JSON quirks.
  */
 
 export function parseAndValidateJSON(rawInput) {
@@ -13,21 +13,18 @@ export function parseAndValidateJSON(rawInput) {
   let parsedData = null;
   let parseError = null;
 
-  // First attempt: standard JSON.parse
   try {
     parsedData = JSON.parse(cleaned);
   } catch (err) {
     parseError = err.message;
   }
 
-  // Second attempt: if standard parse failed, run heavy AI JSON repair
   if (!parsedData) {
     try {
       const repaired = repairAIJsonString(cleaned);
       parsedData = JSON.parse(repaired);
       parseError = null;
     } catch (err2) {
-      // Third attempt: lenient regex extraction of content fields
       const extracted = fallbackRegexExtractPost(cleaned);
       if (extracted) {
         parsedData = extracted;
@@ -35,14 +32,13 @@ export function parseAndValidateJSON(rawInput) {
       } else {
         return {
           valid: false,
-          error: `JSON Syntax Error: ${parseError || err2.message}. (Tip: Prompt was updated to enforce single quotes in HTML to prevent this).`,
+          error: `JSON Syntax Error: ${parseError || err2.message}. (Tip: Try regenerating prompt in Tab I).`,
           rawError: parseError || err2.message
         };
       }
     }
   }
 
-  // Normalize single object or array
   const posts = Array.isArray(parsedData) ? parsedData : [parsedData];
   const validatedPosts = [];
 
@@ -62,8 +58,10 @@ export function parseAndValidateJSON(rawInput) {
       return { valid: false, error: `${postIndexLabel}Missing or invalid 'content_html' string.` };
     }
 
-    // Clean up any remaining markdown link brackets inside href="..." or content
-    const cleanContentHtml = cleanHtmlMarkdownLinks(p.content_html);
+    // Auto fix unclosed <a> tags and add paragraph wrappers if needed
+    let cleanContentHtml = cleanHtmlMarkdownLinks(p.content_html);
+    cleanContentHtml = autoFixUnclosedAnchorTags(cleanContentHtml);
+    cleanContentHtml = autoWrapParagraphs(cleanContentHtml);
 
     const slug = p.slug || generateSlug(p.title);
     const categories = Array.isArray(p.categories) ? p.categories : (p.categories ? [p.categories] : ["Uncategorized"]);
@@ -103,14 +101,12 @@ export function parseAndValidateJSON(rawInput) {
 function preCleanAIJsonString(raw) {
   let str = raw.trim();
 
-  // Strip markdown fences
   if (str.startsWith("```json")) {
     str = str.replace(/^```json\s*/i, "").replace(/\s*```$/, "");
   } else if (str.startsWith("```")) {
     str = str.replace(/^```\s*/, "").replace(/\s*```$/, "");
   }
 
-  // Fix markdown links inside href attribute like href="[http://...](http://...)"
   str = str.replace(/href=["']\[(?:https?:\/\/[^\]]+)\]\((https?:\/\/[^\)]+)\)["']/gi, 'href=\'$1\'');
   str = str.replace(/href=\["(?:https?:\/\/[^\]]+)"\]\((https?:\/\/[^\)]+)\)/gi, 'href=\'$1\'');
 
@@ -119,16 +115,11 @@ function preCleanAIJsonString(raw) {
 
 function repairAIJsonString(raw) {
   let str = raw;
-
-  // Replace unescaped newlines within JSON string values
   str = str.replace(/(?<=:\s*"[^"]*)\n(?=[^"]*")/g, "\\n");
 
-  // Fix unescaped double quotes inside HTML attributes like <a href="http://...">
-  // We locate content_html key and sanitize unescaped quotes inside its value
   const contentMatch = str.match(/"content_html"\s*:\s*"(.*?)"\s*(\}\s*$|\,\s*"[a-zA-Z0-9_]+"\s*:)/s);
   if (contentMatch) {
     const originalContent = contentMatch[1];
-    // Replace unescaped quotes inside HTML tags <... href="..." ...> with single quotes
     const fixedContent = originalContent.replace(/<([^>]+)>/g, (tag) => {
       return tag.replace(/(\w+)=(?:"([^"]*)"|'([^']*)')/g, '$1=\'$2$3\'');
     });
@@ -142,14 +133,48 @@ function cleanHtmlMarkdownLinks(html) {
   if (!html) return "";
   let clean = html;
 
-  // Fix href="[url](url)" -> href="url"
   clean = clean.replace(/href=["']\[(?:https?:\/\/[^\]]+)\]\((https?:\/\/[^\)]+)\)["']/gi, 'href=\'$1\'');
   clean = clean.replace(/href=\["(?:https?:\/\/[^\]]+)"\]\((https?:\/\/[^\)]+)\)/gi, 'href=\'$1\'');
-  
-  // Fix leftover markdown links [Text](URL) -> <a href='URL'>Text</a>
   clean = clean.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href=\'$2\'>$1</a>');
 
   return clean;
+}
+
+function autoFixUnclosedAnchorTags(html) {
+  if (!html) return "";
+  let text = html;
+
+  // Fix unclosed <a> tags before next block tag (<h1..6>, <p>, <div>, <table>, <ul>, <ol>, <blockquote>)
+  const blockTagRegex = /(<a\s+href=['"][^'"]+['"][^>]*>)([\s\S]*?)(?=(<a\s|<h[1-6]|<p|<div|<table|<ul|<ol|<blockquote|$))/gi;
+  
+  text = text.replace(blockTagRegex, (match, openTag, content) => {
+    if (!content.includes("</a>")) {
+      // Find suitable anchor phrase or close around initial phrase
+      return `${openTag}${content}</a>`;
+    }
+    return match;
+  });
+
+  return text;
+}
+
+function autoWrapParagraphs(html) {
+  if (!html) return "";
+  let text = html.trim();
+
+  // If text already has <p> or <h2> tags, leave structure intact
+  if (/<p>|<h[1-6]>|<div>|<table>|<ul>|<ol>/i.test(text)) {
+    return text;
+  }
+
+  // Split by double newlines or single newlines and wrap in <p>
+  const paragraphs = text
+    .split(/\n\s*\n/)
+    .map(p => p.trim())
+    .filter(Boolean)
+    .map(p => `<p>${p}</p>`);
+
+  return paragraphs.join("\n");
 }
 
 function fallbackRegexExtractPost(raw) {
