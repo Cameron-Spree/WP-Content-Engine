@@ -143,7 +143,15 @@ function initPromptGenerator() {
       btnSingle.className = "btn btn-outline";
       if (viewBulk) viewBulk.classList.remove("hidden");
       if (viewSingle) viewSingle.classList.add("hidden");
-      updatePromptPreview();
+      updateBulkClusterPromptPreview();
+    });
+  }
+
+  const btnGenerateBulk = document.getElementById("btn-generate-bulk-cluster");
+  if (btnGenerateBulk) {
+    btnGenerateBulk.addEventListener("click", () => {
+      updateBulkClusterPromptPreview();
+      showToast("Generated cluster prompts successfully!", "success");
     });
   }
 
