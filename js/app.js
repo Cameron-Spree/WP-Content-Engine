@@ -42,6 +42,11 @@ document.addEventListener("DOMContentLoaded", () => {
   renderAll();
 });
 
+// Re-render icons once Lucide finishes loading dynamically
+window.addEventListener("libs-ready", () => {
+  refreshLucideIcons();
+});
+
 /* ==========================================================================
    STATE PERSISTENCE
    ========================================================================== */
