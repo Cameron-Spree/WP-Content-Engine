@@ -696,6 +696,16 @@ function openPostEdit(postId) {
   document.getElementById("edit-post-date").value = parseFormattedDateToInput(post.post_date);
   document.getElementById("edit-post-content").value = post.content_html;
 
+  // Populate Featured Cover Image Select
+  const featuredSelect = document.getElementById("edit-post-featured-image");
+  if (featuredSelect) {
+    featuredSelect.innerHTML = `<option value="">-- Auto-Match Best Image from Pool --</option>` +
+      state.imagePool.map(img => {
+        const isSelected = post.featured_image && (post.featured_image.id === img.id || post.featured_image.url === img.url);
+        return `<option value="${img.id}" ${isSelected ? "selected" : ""}>📷 ${escapeHtml(img.title)} (${escapeHtml(img.filename)})</option>`;
+      }).join("");
+  }
+
   openModal("modal-edit");
 }
 
@@ -715,13 +725,23 @@ function savePostEdit() {
   post.content_html = document.getElementById("edit-post-content").value;
 
   const updatedPost = autoMatchPostMedia(post, state.imagePool, state.settings);
+
+  // Check explicit Featured Image selection
+  const selectedFeaturedId = document.getElementById("edit-post-featured-image") ? document.getElementById("edit-post-featured-image").value : "";
+  if (selectedFeaturedId) {
+    const matchedImg = state.imagePool.find(img => img.id === selectedFeaturedId);
+    if (matchedImg) {
+      updatedPost.featured_image = matchedImg;
+    }
+  }
+
   const index = state.posts.findIndex(p => p.id === postId);
   state.posts[index] = updatedPost;
 
   saveState();
   renderAll();
   closeModal();
-  showToast("Post changes saved successfully!", "success");
+  showToast("Post details & Featured Cover Image saved!", "success");
 }
 
 function saveNewImage() {

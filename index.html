@@ -30,7 +30,7 @@
           <div class="logo-icon"><i data-lucide="landmark"></i></div>
           <div class="brand-text">
             <h1>WP Content Engine</h1>
-            <span class="version-badge" id="app-version-tag">v2.8.0 • Build 15:51</span>
+            <span class="version-badge" id="app-version-tag">v2.9.0 • Build 16:03</span>
           </div>
         </div>
       </div>
@@ -271,12 +271,12 @@
             </div>
           </div>
 
-          <!-- Image Asset Pool Panel -->
+          <!-- In-Body & Featured Image Pool Panel -->
           <div class="card">
             <div class="card-header-flex">
               <div>
-                <h3><i data-lucide="image"></i> Image Asset Pool</h3>
-                <p class="card-desc">Upload local image files or enter image URLs. Auto-computes WordPress upload URLs based on your site domain and month.</p>
+                <h3><i data-lucide="image"></i> In-Body Content Images & Featured Cover Pool</h3>
+                <p class="card-desc">Upload images for body content (used via <code>{{IMAGE:keyword}}</code> in long-form pillar content) and assign Featured Cover Images.</p>
               </div>
               <div class="header-buttons">
                 <label class="btn btn-secondary btn-sm" for="file-upload-input" style="cursor: pointer;">
@@ -509,9 +509,17 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="edit-post-date">Scheduled Date & Time (YYYY-MM-DD HH:MM:SS)</label>
-          <input type="datetime-local" id="edit-post-date" class="form-input">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="edit-post-date">Scheduled Date & Time (YYYY-MM-DD HH:MM:SS)</label>
+            <input type="datetime-local" id="edit-post-date" class="form-input">
+          </div>
+          <div class="form-group">
+            <label for="edit-post-featured-image">Featured Cover Image</label>
+            <select id="edit-post-featured-image" class="form-select">
+              <option value="">-- Auto-Match Best Image from Pool --</option>
+            </select>
+          </div>
         </div>
 
         <div class="form-group">
