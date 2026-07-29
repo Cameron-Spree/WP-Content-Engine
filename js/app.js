@@ -116,18 +116,54 @@ function switchTab(tabId) {
 }
 
 /* ==========================================================================
-   TAB 1: AI PROMPT GENERATOR & HTML WIDGETS
+   TAB 1: AI PROMPT GENERATOR & BULK TOPICAL CLUSTERS
    ========================================================================== */
 
+let currentPromptMode = "single";
+
 function initPromptGenerator() {
-  const inputs = [
+  const btnSingle = document.getElementById("btn-mode-single");
+  const btnBulk = document.getElementById("btn-mode-bulk");
+  const viewSingle = document.getElementById("view-mode-single");
+  const viewBulk = document.getElementById("view-mode-bulk");
+
+  if (btnSingle && btnBulk) {
+    btnSingle.addEventListener("click", () => {
+      currentPromptMode = "single";
+      btnSingle.className = "btn btn-primary";
+      btnBulk.className = "btn btn-outline";
+      if (viewSingle) viewSingle.classList.remove("hidden");
+      if (viewBulk) viewBulk.classList.add("hidden");
+      updatePromptPreview();
+    });
+
+    btnBulk.addEventListener("click", () => {
+      currentPromptMode = "bulk";
+      btnBulk.className = "btn btn-primary";
+      btnSingle.className = "btn btn-outline";
+      if (viewBulk) viewBulk.classList.remove("hidden");
+      if (viewSingle) viewSingle.classList.add("hidden");
+      updatePromptPreview();
+    });
+  }
+
+  const singleInputs = [
     "prompt-topic", "prompt-keywords", "prompt-niche",
     "prompt-tone", "prompt-word-count", "prompt-images-count",
     "toggle-widget-know-more", "toggle-widget-category-spotlight",
     "toggle-widget-table", "toggle-strict-formatting"
   ];
 
-  inputs.forEach(id => {
+  singleInputs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener("input", updatePromptPreview);
+      el.addEventListener("change", updatePromptPreview);
+    }
+  });
+
+  const bulkInputs = ["bulk-cluster-topic", "bulk-questions-input", "bulk-word-count", "bulk-tone"];
+  bulkInputs.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener("input", updatePromptPreview);
@@ -138,9 +174,22 @@ function initPromptGenerator() {
   document.getElementById("btn-copy-prompt").addEventListener("click", () => {
     const text = document.getElementById("prompt-output").value;
     navigator.clipboard.writeText(text).then(() => {
-      showToast("Prompt copied to clipboard!", "success");
+      showToast("Single article prompt copied to clipboard!", "success");
     });
   });
+
+  const btnCopyAllBulk = document.getElementById("btn-copy-all-bulk-prompts");
+  if (btnCopyAllBulk) {
+    btnCopyAllBulk.addEventListener("click", () => {
+      const container = document.getElementById("bulk-prompts-container");
+      if (!container) return;
+      const textareas = container.querySelectorAll("textarea");
+      const allPrompts = Array.from(textareas).map(t => t.value).join("\n\n---\n\n");
+      navigator.clipboard.writeText(allPrompts).then(() => {
+        showToast(`Copied all ${textareas.length} cluster prompts to clipboard!`, "success");
+      });
+    });
+  }
 
   document.getElementById("btn-reset-prompt-form").addEventListener("click", () => {
     document.getElementById("prompt-topic").value = "The Complete Guide to Selecting & Maintaining STIHL Garden Machinery";
@@ -149,11 +198,6 @@ function initPromptGenerator() {
     document.getElementById("prompt-tone").value = "Authoritative, practical, & expert guidance";
     document.getElementById("prompt-word-count").value = "800-1200 words";
     document.getElementById("prompt-images-count").value = "0";
-
-    document.getElementById("toggle-widget-know-more").checked = true;
-    document.getElementById("toggle-widget-category-spotlight").checked = true;
-    document.getElementById("toggle-widget-table").checked = true;
-    document.getElementById("toggle-strict-formatting").checked = true;
 
     updatePromptPreview();
     showToast("Prompt generator reset to defaults.", "info");
@@ -167,6 +211,14 @@ function initPromptGenerator() {
 }
 
 function updatePromptPreview() {
+  if (currentPromptMode === "single") {
+    updateSinglePromptPreview();
+  } else {
+    updateBulkClusterPromptPreview();
+  }
+}
+
+function updateSinglePromptPreview() {
   const params = {
     topic: document.getElementById("prompt-topic").value,
     keywords: document.getElementById("prompt-keywords").value,
@@ -193,6 +245,69 @@ function updatePromptPreview() {
   const postCount = (state.posts || []).length;
   document.getElementById("internal-links-status-text").textContent = 
     `Using ${bankCount} stored site links bank + ${postCount} queued batch blog post URLs for cross-linking.`;
+}
+
+function updateBulkClusterPromptPreview() {
+  const clusterTopic = document.getElementById("bulk-cluster-topic").value;
+  const rawQuestions = document.getElementById("bulk-questions-input").value;
+  const wordCount = document.getElementById("bulk-word-count").value;
+  const tone = document.getElementById("bulk-tone").value;
+
+  const questions = rawQuestions.split("\n").map(q => q.trim()).filter(Boolean);
+
+  const clusterPrompts = generateBulkClusterPrompts({
+    clusterTopic,
+    questions,
+    tone,
+    wordCount,
+    linksBank: state.settings.linksBank || [],
+    siteDomain: state.settings.domain,
+    blogSubpath: state.settings.blogSubpath
+  });
+
+  const countBadge = document.getElementById("bulk-prompts-count");
+  if (countBadge) countBadge.textContent = `${clusterPrompts.length} Prompts Ready`;
+
+  const container = document.getElementById("bulk-prompts-container");
+  if (!container) return;
+
+  if (clusterPrompts.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center; padding: 40px; color: var(--text-muted);">
+        <i data-lucide="layers" style="width:36px; height:36px; margin-bottom:8px;"></i>
+        <p>Type 1 or more article titles / questions in the left panel to generate cluster prompts.</p>
+      </div>`;
+    refreshLucideIcons();
+    return;
+  }
+
+  container.innerHTML = clusterPrompts.map(item => `
+    <div class="card" style="margin-bottom: 16px; padding: 18px; border-color: var(--border-gold-medium);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <strong style="font-family: var(--font-cinzel); font-size: 13px; color: var(--accent-gold-dark);">
+          #${item.index}. ${escapeHtml(item.title)}
+        </strong>
+        <button class="btn btn-primary btn-sm btn-copy-single-cluster" data-index="${item.index}">
+          <i data-lucide="copy"></i> Copy Prompt #${item.index}
+        </button>
+      </div>
+      <textarea class="code-textarea cluster-prompt-textarea" rows="5" readonly style="font-size: 11px;">${escapeHtml(item.prompt)}</textarea>
+    </div>
+  `).join("");
+
+  container.querySelectorAll(".btn-copy-single-cluster").forEach(btn => {
+    btn.onclick = () => {
+      const idx = parseInt(btn.getAttribute("data-index"), 10) - 1;
+      const promptObj = clusterPrompts[idx];
+      if (promptObj) {
+        navigator.clipboard.writeText(promptObj.prompt).then(() => {
+          showToast(`Copied Prompt #${promptObj.index} ("${promptObj.title.substring(0, 25)}...") to clipboard!`, "success");
+        });
+      }
+    };
+  });
+
+  refreshLucideIcons();
 }
 
 /* ==========================================================================

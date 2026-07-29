@@ -30,7 +30,7 @@
           <div class="logo-icon"><i data-lucide="landmark"></i></div>
           <div class="brand-text">
             <h1>WP Content Engine</h1>
-            <span class="version-badge" id="app-version-tag">v3.0.0 • Build 16:04</span>
+            <span class="version-badge" id="app-version-tag">v3.1.0 • Build 16:17</span>
           </div>
         </div>
       </div>
@@ -115,10 +115,29 @@
           </button>
         </div>
 
-        <div class="grid-2col">
+        <!-- Mode Switcher -->
+        <div class="card" style="margin-bottom: 24px; padding: 18px 24px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <i data-lucide="layers" style="color: var(--accent-gold-dark);"></i>
+              <strong style="font-family: var(--font-cinzel); font-size: 14px;">PROMPT GENERATION MODE:</strong>
+            </div>
+            <div class="mode-toggle-buttons">
+              <button type="button" class="btn btn-primary" id="btn-mode-single">
+                <i data-lucide="file-text"></i> Single Article Mode (Detailed)
+              </button>
+              <button type="button" class="btn btn-outline" id="btn-mode-bulk">
+                <i data-lucide="layers"></i> Bulk Topical Cluster Mode (5-10 Articles)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Single Article Mode View -->
+        <div id="view-mode-single" class="grid-2col">
           <!-- Left Form Controls -->
           <div class="card form-card">
-            <h3><i data-lucide="sliders"></i> Prompt Parameters</h3>
+            <h3><i data-lucide="sliders"></i> Single Article Parameters</h3>
             
             <div class="form-group">
               <label for="prompt-topic">Blog Post Topic / Main Subject <span class="required">*</span></label>
@@ -212,7 +231,7 @@
           <!-- Right Generated Output -->
           <div class="card output-card">
             <div class="card-header-flex">
-              <h3><i data-lucide="terminal"></i> Generated AI Prompt</h3>
+              <h3><i data-lucide="terminal"></i> Generated Single AI Prompt</h3>
               <button class="btn btn-primary" id="btn-copy-prompt">
                 <i data-lucide="copy"></i> Copy Prompt to Clipboard
               </button>
@@ -224,6 +243,68 @@
             <div class="prompt-instructions-banner">
               <i data-lucide="info"></i>
               <span>Copy this prompt and paste it directly into <strong>ChatGPT</strong>, <strong>Claude</strong>, or <strong>Gemini</strong>. Then copy the returned JSON output into Tab II.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bulk Topical Cluster Mode View -->
+        <div id="view-mode-bulk" class="grid-2col hidden">
+          <!-- Left Form Controls -->
+          <div class="card form-card">
+            <h3><i data-lucide="layers"></i> Topical Cluster Parameters</h3>
+            
+            <div class="form-group">
+              <label for="bulk-cluster-topic">Topical Cluster Subject / Niche <span class="required">*</span></label>
+              <input type="text" id="bulk-cluster-topic" class="form-input" placeholder="e.g. STIHL Chainsaw Safety & Maintenance" value="STIHL Garden Machinery & Power Tools">
+            </div>
+
+            <div class="form-group">
+              <label for="bulk-questions-input">Cluster Questions / Article Titles (One Title / Question per line) <span class="required">*</span></label>
+              <textarea id="bulk-questions-input" class="code-textarea" rows="8" placeholder="How to Cut a Tree Safely with a STIHL Chainsaw
+What 2-Stroke Fuel Mixture Does a STIHL Engine Need?
+How Often Should You Service a Lawnmower?
+Best Chainsaw Protective Boots and Clothing Guide
+How to Sharpen a STIHL Chainsaw Chain at Home">How to Cut a Tree Safely with a STIHL Chainsaw
+What 2-Stroke Fuel Mixture Does a STIHL Engine Need?
+How Often Should You Service a Lawnmower?
+Best Chainsaw Protective Boots and Clothing Guide
+How to Sharpen a STIHL Chainsaw Chain at Home</textarea>
+              <span class="help-text">Each line generates a separate prompt with automatic cross-linking to all other cluster articles!</span>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="bulk-word-count">Target Word Count</label>
+                <select id="bulk-word-count" class="form-select">
+                  <option value="500-800 words">500 - 800 words (Standard Short Post)</option>
+                  <option value="800-1200 words" selected>800 - 1,200 words (Standard Article)</option>
+                  <option value="1200-1800 words">1,200 - 1,800 words (Deep Dive Guide)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="bulk-tone">Brand Tone</label>
+                <select id="bulk-tone" class="form-select">
+                  <option value="Authoritative, practical, & expert guidance">Authoritative & Expert Guidance</option>
+                  <option value="Conversational, friendly, & helpful">Conversational & Helpful</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Generated Bulk Cluster Output -->
+          <div class="card output-card">
+            <div class="card-header-flex">
+              <div>
+                <h3><i data-lucide="terminal"></i> Generated Cluster Prompts</h3>
+                <span class="badge badge-info" id="bulk-prompts-count">5 Prompts Ready</span>
+              </div>
+              <button class="btn btn-primary btn-sm" id="btn-copy-all-bulk-prompts">
+                <i data-lucide="copy"></i> Copy All Prompts
+              </button>
+            </div>
+
+            <div class="bulk-prompts-list" id="bulk-prompts-container" style="max-height: 520px; overflow-y: auto;">
+              <!-- Cluster prompt cards rendered dynamically with individual copy buttons -->
             </div>
           </div>
         </div>

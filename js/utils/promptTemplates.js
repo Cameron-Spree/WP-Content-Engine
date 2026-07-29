@@ -1,6 +1,6 @@
 /**
  * AI System Prompt Generator Template (Briants of Risborough Edition)
- * Formatted with ```json code blocks and strict HTML widget schema
+ * Single Article Mode & Bulk Topical Cluster Mode
  */
 
 export function generateAIPrompt(params) {
@@ -99,4 +99,95 @@ ${urlSection}${widgetSection}
 \`\`\`
 
 Respond with the \`\`\`json block now:`;
+}
+
+/**
+ * Generate Bulk Cluster Prompts (for rapid 5-10 article cluster generation)
+ */
+export function generateBulkClusterPrompts(params) {
+  const {
+    clusterTopic = "STIHL Garden Machinery & Power Tools",
+    questions = [],
+    niche = "Briants of Risborough - Garden Machinery & Tools",
+    tone = "Authoritative, practical, & expert guidance",
+    wordCount = "800-1200 words",
+    linksBank = [],
+    siteDomain = "https://briantsofrisborough.co.uk",
+    blogSubpath = "/blog/"
+  } = params;
+
+  if (!questions || questions.length === 0) return [];
+
+  // Build cluster URLs mapping so prompts cross-link all articles in the cluster
+  const clusterLinks = questions.map(q => {
+    const slug = String(q).toLowerCase().replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-");
+    const fullUrl = `${siteDomain.replace(/\/$/, "")}${blogSubpath}${slug}`;
+    return { title: q.trim(), url: fullUrl };
+  });
+
+  return questions.map((q, idx) => {
+    const otherClusterArticles = clusterLinks
+      .filter((_, i) => i !== idx)
+      .map(c => `- ${c.url} (Cluster Article: "${c.title}")`);
+
+    const masterLinks = linksBank.map(item => {
+      if (item.url && item.label) return `- ${item.url} (Anchor Text: "${item.label}")`;
+      return `- ${item}`;
+    });
+
+    const allLinksText = [...masterLinks, ...otherClusterArticles].join("\n");
+
+    const promptText = `SYSTEM INSTRUCTION: Act as an expert SEO Copywriter for Briants of Risborough (${siteDomain}). Write Cluster Article #${idx + 1} of ${questions.length} in the "${clusterTopic}" cluster.
+
+CRITICAL FORMATTING REQUIREMENT: Wrap your entire JSON output inside a markdown \`\`\`json ... \`\`\` code block.
+
+STRICT HTML RULES FOR content_html:
+1. EVERY paragraph MUST be wrapped in separate <p>...</p> tags.
+2. EVERY section heading MUST be wrapped in <h2>Heading Title</h2> or <h3>Heading Title</h3>.
+3. EVERY link MUST be closed properly: <a href='https://...'>Anchor Phrase</a>.
+4. ALWAYS use single quotes for HTML attributes inside content_html.
+
+---
+### Article Specifications:
+- Article Title / Question: "${q.trim()}"
+- Cluster Topic: "${clusterTopic}"
+- Site Niche / Domain: ${niche}
+- Brand Tone: ${tone}
+- Target Word Count: ${wordCount}
+
+### Target Internal Links (Contextual Cross-Linking Mandate):
+${allLinksText}
+
+### Mandatory HTML Callout Widget:
+At the end of the post, include an HTML callout box formatted EXACTLY as:
+<div class='callout-box want-to-know-more'>
+  <h4>💡 Want to Know More? Recommended Reading</h4>
+  <ul>
+    <li><a href='[Internal Link URL 1]'>[Anchor Title 1]</a></li>
+    <li><a href='[Internal Link URL 2]'>[Anchor Title 2]</a></li>
+  </ul>
+</div>
+
+---
+### Required JSON Format (Wrap in \`\`\`json):
+\`\`\`json
+{
+  "title": "${q.trim().replace(/"/g, '\\"')}",
+  "slug": "${clusterLinks[idx].url.split('/').pop()}",
+  "categories": ["Garden Machinery", "STIHL"],
+  "tags": ["stihl", "garden machinery", "briants of risborough"],
+  "yoast_meta_title": "${q.trim().substring(0, 50)} | Briants of Risborough",
+  "yoast_meta_desc": "Discover expert advice on ${q.trim().toLowerCase()} from Briants of Risborough.",
+  "content_html": "<p>Content HTML wrapped in <p> and <h2> tags...</p><div class='callout-box want-to-know-more'>...</div>"
+}
+\`\`\`
+
+Respond with the \`\`\`json block now:`;
+
+    return {
+      index: idx + 1,
+      title: q.trim(),
+      prompt: promptText
+    };
+  });
 }
