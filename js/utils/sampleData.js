@@ -1,6 +1,6 @@
 /**
  * Sample Data for WP Content Engine (Briants of Risborough Edition)
- * Includes comprehensive scraped machinery categories and brand internal link bank
+ * 100% Exact Live Verified URLs extracted directly from briantsofrisborough.co.uk
  */
 
 export const DEFAULT_SITE_SETTINGS = {
@@ -10,21 +10,27 @@ export const DEFAULT_SITE_SETTINGS = {
   uploadMonth: "06",
   linksBank: [
     { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/", label: "Garden Machinery Range" },
-    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/chainsaws-and-accessories/", label: "Chainsaws & Accessories" },
-    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/lawnmowers/", label: "Lawnmowers (Petrol, Electric & Ride-On)" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/lawn-mowers/", label: "Lawn Mowers Range" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/chainsaws/", label: "Chainsaws" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/grass-trimmers-and-brushcutters/", label: "Grass Trimmers & Brushcutters" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/hedge-trimmers/", label: "Hedge Trimmers" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/leaf-blowers-and-vacuum-shredders/", label: "Leaf Blowers & Vacuum Shredders" },
     { url: "https://briantsofrisborough.co.uk/robotic-mowers/", label: "Robotic Lawnmowers & iMOW" },
-    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/hedgetrimmers/", label: "Hedge Trimmers & Long-Reach Cutters" },
-    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/leaf-blowers-vacuums/", label: "Leaf Blowers & Shredder Vacuums" },
-    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/brushcutters-strimmers/", label: "Brushcutters & Grass Strimmers" },
-    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/pole-pruners/", label: "Pole Pruners & Telescopic Saw Tools" },
-    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/ground-preparation/", label: "Tillers, Scarifiers & Cultivators" },
-    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/cordless-garden-machinery/", label: "Cordless Battery Powered Machinery" },
-    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/batteries-chargers/", label: "STIHL & Milwaukee Batteries & Chargers" },
-    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/maintenance-tools-and-accessories/", label: "2-Stroke Oils, Chainsaw Chains & Spare Parts" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/tillers-and-rotovators/", label: "Tillers & Rotovators" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/scarifiers/", label: "Lawn Scarifiers" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/pressure-washers/", label: "Pressure Washers" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/shredders-log-splitters/", label: "Shredders & Log Splitters" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/log-splitters/", label: "Log Splitters" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/chipper-shredders/", label: "Wood Chipper Shredders" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/kombi-system-stihl/", label: "STIHL KombiSystem Multi-Tools" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/versatool-system-honda/", label: "Honda Versatool System" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/augers-accessories/", label: "Earth Augers & Accessories" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/chainsaw-accessories/", label: "Chainsaw Accessories & Chains" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/trimmer-lines-heads-blades/", label: "Trimmer Lines, Heads & Metal Blades" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/oils-fuels-maintenance/", label: "2-Stroke Oils, MotoMix & Maintenance" },
+    { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/spares-and-parts/", label: "Machinery Spares & Replacement Parts" },
     { url: "https://briantsofrisborough.co.uk/machinery-repairs/", label: "Garden Machinery Repairs & Servicing" },
     { url: "https://briantsofrisborough.co.uk/product-category/arborist-equipment/", label: "Arborist & Forestry Climbing Equipment" },
-    { url: "https://briantsofrisborough.co.uk/product-category/forestry-equipment/silky-saws/", label: "Silky Pruning Saws & Hand Saws" },
-    { url: "https://briantsofrisborough.co.uk/product-category/forestry-equipment/chainsaw-mills-for-timber-milling/", label: "Chainsaw Mills & Sawhorses" },
     { url: "https://briantsofrisborough.co.uk/product-category/brand/stihl/", label: "STIHL Power Tools & Machinery" },
     { url: "https://briantsofrisborough.co.uk/product-category/milwaukee/", label: "Milwaukee Power Tools & Outdoor Gear" },
     { url: "https://briantsofrisborough.co.uk/product-category/fencing-and-timber/", label: "Fencing & Timber Products" },
@@ -68,7 +74,7 @@ export const SAMPLE_POST_PAYLOADS = [
 <p>Cutting down a tree requires proper preparation, safety gear, and reliable equipment. Before starting any felling work, ensure your workspace is clear and your equipment is fully serviced.</p>
 
 <h2>1. Choosing the Right Safety Gear & Equipment</h2>
-<p>Always equip yourself with chainsaw-resistant trousers, helmet with visor, ear defenders, and anti-vibration gloves. For professional equipment recommendations, explore our <a href="https://briantsofrisborough.co.uk/product-category/garden-machinery/chainsaws-and-accessories/">Chainsaws & Accessories</a> range.</p>
+<p>Always equip yourself with chainsaw-resistant trousers, helmet with visor, ear defenders, and anti-vibration gloves. For professional equipment recommendations, explore our <a href="https://briantsofrisborough.co.uk/product-category/garden-machinery/chainsaws/">Chainsaws</a> range.</p>
 
 <h2>2. Assessing the Tree & Felling Plan</h2>
 <p>Examine the natural lean of the tree, wind direction, and branch distribution. Establish a clear escape route at a 45-degree angle behind the planned direction of fall.</p>
@@ -122,7 +128,7 @@ export const SAMPLE_POST_PAYLOADS = [
   <li><strong>Spark Plug & Air Filter Check:</strong> Ensure easy starting and optimal fuel efficiency.</li>
 </ul>
 
-<p>Discover our full range of <a href="https://briantsofrisborough.co.uk/robotic-mowers/">Robotic Lawnmowers & iMOW</a> or visit our showroom in Princes Risborough for expert assistance.</p>
+<p>Discover our full range of <a href="https://briantsofrisborough.co.uk/product-category/garden-machinery/lawn-mowers/">Lawn Mowers</a> and <a href="https://briantsofrisborough.co.uk/robotic-mowers/">Robotic Lawnmowers</a> or visit our showroom in Princes Risborough for expert assistance.</p>
 `,
     image_placeholders: []
   }
