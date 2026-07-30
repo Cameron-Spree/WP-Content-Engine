@@ -1221,8 +1221,7 @@ label {
 }
 
 .html-render-container figure img,
-.html-render-container img,
-.featured-img-preview-box img {
+.html-render-container img {
   width: 100% !important;
   max-width: 100% !important;
   height: auto !important;
@@ -1232,6 +1231,19 @@ label {
   display: block !important;
   margin: 0 auto !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
+}
+
+.featured-img-preview-box img {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 360px !important;
+  max-height: 400px !important;
+  object-fit: cover !important;
+  aspect-ratio: 16 / 9 !important;
+  border-radius: 12px !important;
+  display: block !important;
+  margin: 0 auto 24px auto !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25) !important;
 }
 
 .html-render-container figcaption {
