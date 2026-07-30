@@ -686,10 +686,6 @@ function getSafeImageDisplayUrl(imgOrUrl) {
   return targetUrl;
 }
 
-function renderMediaPool() {
-  const container = document.getElementById("media-pool-container");
-  const fullContainer = document.getElementById("full-media-library-container");
-
 // Active selected featured image ID for currently active/ingested post in Tab II
 let activeIngestFeaturedImgId = null;
 
