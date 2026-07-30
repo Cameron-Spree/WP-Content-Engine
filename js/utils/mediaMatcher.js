@@ -1,24 +1,37 @@
 /**
- * Smart Media Matcher & WordPress Path Builder for WP Content Engine
+ * Smart Media Matcher & Universal Noun Extractor for WP Content Engine
+ * Filters out verbs, adjectives, filler words, and structural blog terms across any niche.
  */
 
-const PRODUCT_NOUNS = [
-  "strimmer", "strimmers", "lawnmower", "lawnmowers", "chainsaw", "chainsaws",
-  "brushcutter", "brushcutters", "hedgetrimmer", "hedgetrimmers", "blower", "blowers",
-  "mower", "mowers", "imow", "stihl", "honda", "husqvarna", "viking", "mountfield",
-  "hayter", "toro", "cub cadet", "countax", "atco", "karcher", "al-ko", "ego",
-  "grass", "lawn", "hedge", "tree", "wood", "garden", "mulcher", "shredder",
-  "scarifier", "tiller", "generator", "pressure washer", "robotic", "robot",
-  "chaps", "helmet", "oil", "chain", "blade", "battery", "cordless", "petrol"
-];
+// Universal Non-Noun Exclusion Set (Verbs, Adjectives, Pronouns, Conjunctions, Meta Fillers)
+const NON_NOUNS = new Set([
+  // Auxiliary & Action Verbs
+  "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does", "did",
+  "need", "needs", "needed", "needing", "know", "knows", "knew", "knowing", "want", "wants", "wanted",
+  "get", "gets", "got", "getting", "make", "makes", "made", "making", "take", "takes", "took", "taking",
+  "can", "could", "will", "would", "should", "shall", "may", "might", "must", "choose", "choosing", "chose",
+  "buy", "buying", "bought", "sell", "selling", "sold", "use", "using", "used", "work", "working", "worked",
+  "run", "running", "ran", "fix", "fixing", "fixed", "clean", "cleaning", "cleaned", "maintain", "maintaining",
+  "look", "looking", "looked", "see", "seeing", "saw", "find", "finding", "found", "start", "starting",
+  "stop", "stopping", "help", "helps", "helped", "helping", "give", "gives", "gave", "keep", "keeping",
+  "think", "thinking", "thought", "try", "trying", "tried", "learn", "learning", "learned", "understand",
 
-const STOP_WORDS = new Set([
-  "what", "do", "does", "did", "need", "needs", "know", "about", "how", "to",
-  "the", "and", "or", "for", "with", "your", "my", "our", "this", "that", "from",
-  "why", "when", "where", "which", "who", "best", "top", "ultimate", "buying",
-  "buyer", "buyers", "guide", "complete", "post", "blog", "everything", "should",
-  "could", "would", "make", "take", "give", "help", "things", "ways", "tips",
-  "tricks", "review", "reviews", "versus", "comparison", "essential"
+  // Adjectives & Quality Descriptors
+  "ultimate", "best", "top", "great", "good", "bad", "easy", "hard", "simple", "complete", "full",
+  "essential", "perfect", "ideal", "right", "wrong", "new", "old", "first", "last", "cheap", "expensive",
+  "quick", "fast", "slow", "safe", "safely", "high", "low", "big", "small", "large", "huge", "smart",
+
+  // Pronouns, Prepositions, Conjunctions & Question Words
+  "what", "why", "when", "where", "how", "who", "which", "whose", "whom",
+  "i", "you", "he", "she", "it", "we", "they", "me", "him", "her", "us", "them",
+  "my", "your", "his", "her", "its", "our", "their", "this", "that", "these", "those",
+  "with", "without", "from", "into", "onto", "upon", "about", "above", "below", "under", "over",
+  "and", "but", "or", "nor", "so", "yet", "for", "against", "between", "through", "after", "before",
+
+  // Meta Blog / Structural Fillers
+  "guide", "guides", "tutorial", "tutorials", "tip", "tips", "trick", "tricks", "article", "articles",
+  "post", "posts", "blog", "blogs", "review", "reviews", "overview", "everything", "anything", "nothing",
+  "something", "versus", "comparison", "checklist", "way", "ways", "thing", "things"
 ]);
 
 export function extractSmartMediaKeywords(titleText) {
@@ -27,15 +40,13 @@ export function extractSmartMediaKeywords(titleText) {
   const cleanText = titleText.toLowerCase().replace(/[^\w\s]/g, " ");
   const words = cleanText.split(/\s+/).filter(w => w.length > 2);
 
-  // High-priority product nouns (e.g. strimmers, lawnmower, chainsaw)
-  const matchedProducts = words.filter(w => PRODUCT_NOUNS.some(p => p === w || (w.length > 4 && (p.includes(w) || w.includes(p)))));
+  // Filter out all non-noun verbs, adjectives, and filler words
+  const extractedNouns = words.filter(w => !NON_NOUNS.has(w));
 
-  // Filter out non-product stop words
-  const cleanWords = words.filter(w => w.length > 3 && !STOP_WORDS.has(w));
+  // Sort extracted nouns by length (longer nouns e.g. "strimmers", "headphones", "lawnmowers" are usually primary subject nouns)
+  extractedNouns.sort((a, b) => b.length - a.length);
 
-  // Combine product nouns at the top
-  const result = Array.from(new Set([...matchedProducts, ...cleanWords]));
-  return result;
+  return Array.from(new Set(extractedNouns));
 }
 
 export function buildWpUploadUrl(filename, settings) {
@@ -94,7 +105,7 @@ export function autoMatchPostMedia(post, imagePool, settings) {
   }
 
   if (!featuredImage && post.title) {
-    const titleWords = extractSmartMediaKeywords(post.title);
+    const titleNouns = extractSmartMediaKeywords(post.title);
 
     let bestScore = 0;
     let bestMatch = null;
@@ -103,9 +114,9 @@ export function autoMatchPostMedia(post, imagePool, settings) {
       let score = 0;
       const imgText = `${img.title || ''} ${img.filename || ''} ${(img.tags || []).join(' ')}`.toLowerCase();
 
-      titleWords.forEach((word, idx) => {
-        if (imgText.includes(word)) {
-          // Extra weight for product nouns matched near beginning
+      titleNouns.forEach((noun, idx) => {
+        if (imgText.includes(noun)) {
+          // Extra weight for subject nouns
           score += (idx === 0 ? 5 : 2);
         }
       });
