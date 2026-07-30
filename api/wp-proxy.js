@@ -1,6 +1,6 @@
 /**
  * Vercel Serverless Function Proxy for WordPress REST API
- * Relays media uploads & API calls server-to-server to avoid browser CORS restrictions.
+ * Relays media uploads, live keyword searches & API calls server-to-server to avoid browser CORS restrictions.
  */
 
 export const config = {
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   // Set CORS headers for our own app
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Disposition, X-WP-Domain, X-WP-Action, X-WP-Media-Id");
+  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Disposition, X-WP-Domain, X-WP-Action, X-WP-Media-Id, X-WP-Query");
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
@@ -22,6 +22,7 @@ export default async function handler(req, res) {
   const wpDomain = (req.headers["x-wp-domain"] || "https://briantsofrisborough.co.uk").replace(/\/$/, "");
   const authHeader = req.headers["authorization"];
   const action = req.headers["x-wp-action"] || "upload";
+  const searchQuery = req.headers["x-wp-query"] || "";
 
   if (!authHeader) {
     return res.status(401).json({ error: "Missing Authorization header" });
@@ -38,8 +39,9 @@ export default async function handler(req, res) {
       return res.status(response.status).send(data);
     }
 
-    if (action === "list") {
-      const targetUrl = `${wpDomain}/wp-json/wp/v2/media?per_page=50`;
+    if (action === "list" || action === "search") {
+      const searchParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : "";
+      const targetUrl = `${wpDomain}/wp-json/wp/v2/media?per_page=50${searchParam}`;
       const response = await fetch(targetUrl, {
         method: "GET",
         headers: { "Authorization": authHeader }

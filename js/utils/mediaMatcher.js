@@ -44,7 +44,7 @@ export function autoMatchPostMedia(post, imagePool, settings) {
     if (matchedImage) {
       mappedImages[keyword] = matchedImage;
     } else {
-      // Fallback: match by partial tag or title, or fallback to first image in pool
+      // Fallback: match by partial tag or title
       const partialMatch = imagePool.find(img => 
         img.tags.some(tag => tag.toLowerCase().includes(kwLower) || kwLower.includes(tag.toLowerCase())) ||
         (img.title && img.title.toLowerCase().includes(kwLower))
@@ -53,14 +53,47 @@ export function autoMatchPostMedia(post, imagePool, settings) {
     }
   });
 
-  // Assign featured image if not explicitly set
+  // Assign featured image based on Title-Keyword Matching algorithm
   let featuredImage = null;
   if (post.featured_image_id) {
     featuredImage = imagePool.find(img => img.id === post.featured_image_id);
   }
 
+  if (!featuredImage && post.title) {
+    // Extract significant words (>3 letters) from post title
+    const stopWords = new Set(["how", "to", "the", "and", "for", "with", "your", "this", "that", "from", "what", "why", "best", "guide", "complete", "complete"]);
+    const titleWords = post.title
+      .toLowerCase()
+      .replace(/[^\w\s]/g, "")
+      .split(/\s+/)
+      .filter(w => w.length > 3 && !stopWords.has(w));
+
+    // Score every image in the pool based on matching title words
+    let bestScore = 0;
+    let bestMatch = null;
+
+    imagePool.forEach(img => {
+      let score = 0;
+      const imgText = `${img.title || ''} ${img.filename || ''} ${(img.tags || []).join(' ')}`.toLowerCase();
+
+      titleWords.forEach(word => {
+        if (imgText.includes(word)) {
+          score += 2;
+        }
+      });
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = img;
+      }
+    });
+
+    if (bestMatch && bestScore > 0) {
+      featuredImage = bestMatch;
+    }
+  }
+
   if (!featuredImage) {
-    // Try matching post category or post title tags against image pool
     const postTags = [...(post.categories || []), ...(post.tags || [])].map(t => t.toLowerCase());
     featuredImage = imagePool.find(img => 
       img.tags.some(tag => postTags.includes(tag.toLowerCase()))

@@ -563,6 +563,35 @@ function processUploadedImageFiles(files) {
   const mediaSearchInput = document.getElementById("media-search-input");
   if (mediaSearchInput) {
     mediaSearchInput.addEventListener("input", renderMediaPool);
+    mediaSearchInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        const btnSearchWp = document.getElementById("btn-search-wp-media");
+        if (btnSearchWp) btnSearchWp.click();
+      }
+    });
+  }
+
+  const btnSearchWpMedia = document.getElementById("btn-search-wp-media");
+  if (btnSearchWpMedia) {
+    btnSearchWpMedia.addEventListener("click", async () => {
+      const query = (document.getElementById("media-search-input").value || "").trim();
+      if (!query) {
+        showToast("Please enter a keyword to search WordPress library.", "warning");
+        return;
+      }
+      showToast(`Searching 7,000+ WordPress assets for "${query}"...`, "info");
+      const wpItems = await fetchWordPressMediaPool(state.settings, query);
+      if (wpItems.length > 0) {
+        const existingIds = new Set(state.imagePool.map(i => i.wpMediaId));
+        const newItems = wpItems.filter(i => !existingIds.has(i.wpMediaId));
+        state.imagePool = [...newItems, ...state.imagePool];
+        saveState();
+        renderMediaPool();
+        showToast(`Found ${wpItems.length} matching media assets in WordPress!`, "success");
+      } else {
+        showToast(`No WordPress media found matching "${query}".`, "warning");
+      }
+    });
   }
 
   const mediaSortSelect = document.getElementById("media-sort-select");

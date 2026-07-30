@@ -30,7 +30,7 @@
           <div class="logo-icon"><i data-lucide="landmark"></i></div>
           <div class="brand-text">
             <h1>WP Content Engine</h1>
-            <span class="version-badge" id="app-version-tag">v5.2.0 • Build 11:53</span>
+            <span class="version-badge" id="app-version-tag">v6.0.0 • Build 11:57</span>
           </div>
         </div>
       </div>
@@ -413,12 +413,17 @@ How to Sharpen a STIHL Chainsaw Chain at Home</textarea>
         </div>
 
         <div class="card" style="margin-bottom: 24px;">
-          <div class="form-row" style="margin-bottom: 0;">
+          <div class="form-row" style="margin-bottom: 0; align-items: flex-end;">
             <div class="form-group inline-group" style="flex: 1;">
-              <label for="media-search-input">Search Media Assets</label>
-              <input type="text" id="media-search-input" class="form-input" placeholder="Search by image title, filename, or keyword tags (e.g. stihl, chainsaw, lawnmower)...">
+              <label for="media-search-input">Search Local & Live WordPress Assets</label>
+              <div style="display:flex; gap: 8px;">
+                <input type="text" id="media-search-input" class="form-input" placeholder="Type keyword (e.g. stihl, chainsaw, lawnmower) to search local & 7,000+ WP library...">
+                <button class="btn btn-primary" id="btn-search-wp-media" style="white-space:nowrap;">
+                  <i data-lucide="search"></i> Search 7,000+ WP Library
+                </button>
+              </div>
             </div>
-            <div class="form-group inline-group" style="width: 200px;">
+            <div class="form-group inline-group" style="width: 180px;">
               <label for="media-sort-select">Sort By</label>
               <select id="media-sort-select" class="form-select">
                 <option value="newest">Newest Added</option>

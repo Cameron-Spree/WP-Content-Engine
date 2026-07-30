@@ -163,9 +163,9 @@ export async function updateWordPressMediaDetails(wpMediaId, details, settings) 
 }
 
 /**
- * Fetch existing media pool directly from live WordPress Media Library
+ * Fetch existing media pool directly from live WordPress Media Library (supports live keyword search across 7,000+ items)
  */
-export async function fetchWordPressMediaPool(settings) {
+export async function fetchWordPressMediaPool(settings, searchQuery = "") {
   if (!settings || !settings.wpUsername || !settings.wpAppPassword) {
     return [];
   }
@@ -181,7 +181,8 @@ export async function fetchWordPressMediaPool(settings) {
       headers: {
         "Authorization": authHeader,
         "X-WP-Domain": wpDomain,
-        "X-WP-Action": "list"
+        "X-WP-Action": searchQuery ? "search" : "list",
+        "X-WP-Query": searchQuery
       }
     });
 
@@ -192,8 +193,23 @@ export async function fetchWordPressMediaPool(settings) {
 
     return items.map(item => {
       const title = (item.title && item.title.rendered) ? item.title.rendered : (item.slug || "Media Asset");
-      const url = item.source_url || (item.guid && item.guid.rendered ? item.guid.rendered : "");
-      const filename = url ? url.split('/').pop() : `${item.slug}.jpg`;
+      
+      let rawUrl = item.source_url || (item.guid && item.guid.rendered ? item.guid.rendered : "");
+      let previewUrl = rawUrl;
+
+      if (item.media_details && item.media_details.sizes) {
+        if (item.media_details.sizes.medium && item.media_details.sizes.medium.source_url) {
+          previewUrl = item.media_details.sizes.medium.source_url;
+        } else if (item.media_details.sizes.thumbnail && item.media_details.sizes.thumbnail.source_url) {
+          previewUrl = item.media_details.sizes.thumbnail.source_url;
+        }
+      }
+
+      // Ensure HTTPS so browser never blocks Mixed Content
+      const safeUrl = (rawUrl || "").replace(/^http:\/\//i, "https://");
+      const safePreviewUrl = (previewUrl || safeUrl).replace(/^http:\/\//i, "https://");
+
+      const filename = safeUrl ? safeUrl.split('/').pop() : `${item.slug}.jpg`;
       const tags = [
         item.media_type || "image",
         ...(item.slug ? item.slug.split('-') : [])
@@ -204,7 +220,8 @@ export async function fetchWordPressMediaPool(settings) {
         wpMediaId: item.id,
         title: title,
         filename: filename,
-        url: url,
+        url: safeUrl,
+        previewUrl: safePreviewUrl,
         tags: Array.from(new Set(tags))
       };
     });
