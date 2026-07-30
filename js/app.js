@@ -448,6 +448,7 @@ function initIngestionAndMedia() {
   // Debounced Auto-Suggest when typing/pasting JSON in Tab II
   let autoSuggestTimer = null;
   rawInput.addEventListener("input", () => {
+    updateBodyImagesCountBadge();
     clearTimeout(autoSuggestTimer);
     autoSuggestTimer = setTimeout(() => {
       autoSuggestMediaForCurrentJson();
@@ -753,6 +754,27 @@ function updateIngestFeaturedBanner(title) {
   const bannerEl = document.getElementById("ingest-featured-title");
   if (bannerEl) {
     bannerEl.textContent = title ? `⭐ ${title}` : "(None selected — Click '⭐ Set Featured' on any image below)";
+  }
+}
+
+function updateBodyImagesCountBadge() {
+  const rawInput = document.getElementById("raw-json-input");
+  const badgeEl = document.getElementById("ingest-body-images-count-badge");
+  if (!rawInput || !badgeEl) return;
+
+  const val = rawInput.value || "";
+  const imgTagMatches = (val.match(/<img[^>]+>/gi) || []).length;
+  const placeholderMatches = (val.match(/\{\{IMAGE:[^}]+\}\}/gi) || []).length;
+  const total = imgTagMatches + placeholderMatches;
+
+  const targetCountEl = document.getElementById("prompt-images-count");
+  const target = targetCountEl ? targetCountEl.value : "4";
+
+  badgeEl.textContent = `In-Body Images Inserted: ${total} / ${target}`;
+  if (total > 0) {
+    badgeEl.className = "badge badge-success";
+  } else {
+    badgeEl.className = "badge badge-info";
   }
 }
 

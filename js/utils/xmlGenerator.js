@@ -34,6 +34,21 @@ export function generateWXRXML(posts, imagePool, siteMetadata = {}) {
         if (img && img.url) allImagesToProcess.push(img);
       });
     }
+    // HTML Body <img> src tags
+    if (post.content_html) {
+      const matches = post.content_html.match(/src=["'](https?:\/\/[^"']+)["']/gi);
+      if (matches) {
+        matches.forEach(m => {
+          const urlMatch = m.match(/src=["'](https?:\/\/[^"']+)["']/i);
+          if (urlMatch && urlMatch[1]) {
+            allImagesToProcess.push({
+              title: post.title || "Body Image Asset",
+              url: urlMatch[1]
+            });
+          }
+        });
+      }
+    }
   });
 
   // Unique images list
@@ -122,8 +137,8 @@ export function generateWXRXML(posts, imagePool, siteMetadata = {}) {
     }
 
     // Featured Image (_thumbnail_id)
-    if (post.featured_image && post.featured_image.url) {
-      const featAttId = attachmentMap.get(post.featured_image.url);
+    if (post.featured_image) {
+      const featAttId = post.featured_image.wpMediaId || (post.featured_image.url ? attachmentMap.get(post.featured_image.url) : null);
       if (featAttId) {
         metaFields.push(`
       <wp:postmeta>

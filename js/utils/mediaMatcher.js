@@ -53,10 +53,10 @@ export function autoMatchPostMedia(post, imagePool, settings) {
     }
   });
 
-  // Assign featured image based on Title-Keyword Matching algorithm
-  let featuredImage = null;
-  if (post.featured_image_id) {
-    featuredImage = imagePool.find(img => img.id === post.featured_image_id);
+  // Assign featured image based on Title-Keyword Matching algorithm (preserving explicit user selections)
+  let featuredImage = post.featured_image || null;
+  if (!featuredImage && post.featured_image_id) {
+    featuredImage = imagePool.find(img => img.id === post.featured_image_id || String(img.wpMediaId) === String(post.featured_image_id));
   }
 
   if (!featuredImage && post.title) {
