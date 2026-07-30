@@ -69,9 +69,9 @@ function loadStoredState() {
     }
   }
 
-  // Populate sample defaults if empty
-  if (state.imagePool.length === 0) {
-    state.imagePool = [...SAMPLE_IMAGE_POOL];
+  // Keep imagePool as user state (do not auto-inject sample images)
+  if (!state.imagePool) {
+    state.imagePool = [];
   }
 }
 

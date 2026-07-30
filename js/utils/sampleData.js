@@ -40,29 +40,7 @@ export const DEFAULT_SITE_SETTINGS = {
   ]
 };
 
-export const SAMPLE_IMAGE_POOL = [
-  {
-    id: "img_1",
-    filename: "STIHL-Garden-Machinery.jpg",
-    url: "https://briantsofrisborough.co.uk/wp-content/uploads/2026/06/STIHL-Garden-Machinery.jpg",
-    title: "STIHL Garden Machinery Display",
-    tags: ["stihl", "machinery", "garden", "chainsaw", "tools"]
-  },
-  {
-    id: "img_2",
-    filename: "Professional-Chainsaw-Maintenance.jpg",
-    url: "https://briantsofrisborough.co.uk/wp-content/uploads/2026/06/Professional-Chainsaw-Maintenance.jpg",
-    title: "Professional Chainsaw Service & Sharpening",
-    tags: ["chainsaw", "maintenance", "safety", "service", "tree"]
-  },
-  {
-    id: "img_3",
-    filename: "Lawnmower-Robotic-Mowers.jpg",
-    url: "https://briantsofrisborough.co.uk/wp-content/uploads/2026/06/Lawnmower-Robotic-Mowers.jpg",
-    title: "Lawnmowers and iMOW Robotic Mowers",
-    tags: ["lawnmower", "robot", "imow", "lawn", "grass"]
-  }
-];
+export const SAMPLE_IMAGE_POOL = [];
 
 export const SAMPLE_POST_PAYLOADS = [
   {
