@@ -74,6 +74,10 @@ export function autoMatchPostMedia(post, imagePool, settings, manualBodyImgIds =
     return post;
   }
 
+  // Check if mapped_images is ALREADY locked on this post from ingestion or manual selection
+  const isAlreadyMapped = Boolean(post.is_media_locked || (post.mapped_images && Object.keys(post.mapped_images).length > 0));
+  const hasManualBodyInput = Array.isArray(manualBodyImgIds) && manualBodyImgIds.length > 0;
+
   // Track used images so featured cover & body placeholders get unique, distinct images!
   const usedImageIds = new Set();
 
@@ -121,8 +125,19 @@ export function autoMatchPostMedia(post, imagePool, settings, manualBodyImgIds =
     usedImageIds.add(featuredImage.id);
   }
 
+  // IF ALREADY MAPPED & NO NEW MANUAL OVERRIDE IS PROVIDED: PRESERVE MAPPED_IMAGES PERMANENTLY!
+  if (isAlreadyMapped && !hasManualBodyInput) {
+    return {
+      ...post,
+      featured_image_id: featuredImage ? featuredImage.id : null,
+      featured_image: featuredImage,
+      mapped_images: post.mapped_images,
+      is_media_locked: true
+    };
+  }
+
   // Match body placeholders ensuring distinct images for each placeholder
-  const mappedImages = post.mapped_images ? { ...post.mapped_images } : {};
+  const mappedImages = {};
   const placeholders = post.image_placeholders || [];
 
   placeholders.forEach((keyword, idx) => {
@@ -170,7 +185,8 @@ export function autoMatchPostMedia(post, imagePool, settings, manualBodyImgIds =
     ...post,
     featured_image_id: featuredImage ? featuredImage.id : null,
     featured_image: featuredImage,
-    mapped_images: mappedImages
+    mapped_images: mappedImages,
+    is_media_locked: true
   };
 }
 

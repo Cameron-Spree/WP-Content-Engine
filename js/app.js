@@ -447,10 +447,19 @@ function initIngestionAndMedia() {
     switchTab("tab-queue");
   });
 
-  // Debounced Auto-Suggest when typing/pasting JSON in Tab II
+  const rawDraft = localStorage.getItem("wp_draft_raw_json");
+  if (rawDraft && !rawInput.value) {
+    rawInput.value = rawDraft;
+    updateBodyImagesCountBadge();
+  }
+
+  // Debounced Auto-Suggest & Persistent Draft Saving when typing/pasting JSON in Tab II
   let autoSuggestTimer = null;
   rawInput.addEventListener("input", () => {
     updateBodyImagesCountBadge();
+    try {
+      localStorage.setItem("wp_draft_raw_json", rawInput.value);
+    } catch (e) {}
     clearTimeout(autoSuggestTimer);
     autoSuggestTimer = setTimeout(() => {
       autoSuggestMediaForCurrentJson();
