@@ -8,6 +8,8 @@ export const DEFAULT_SITE_SETTINGS = {
   blogSubpath: "/blog/",
   uploadYear: "2026",
   uploadMonth: "06",
+  wpUsername: "",
+  wpAppPassword: "",
   linksBank: [
     { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/", label: "Garden Machinery Range" },
     { url: "https://briantsofrisborough.co.uk/product-category/garden-machinery/lawn-mowers/", label: "Lawn Mowers Range" },

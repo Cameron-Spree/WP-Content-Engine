@@ -57,7 +57,9 @@ function loadStoredState() {
   if (saved) {
     try {
       const parsed = JSON.parse(saved);
-      if (parsed.settings) state.settings = parsed.settings;
+      if (parsed.settings) {
+        state.settings = { ...DEFAULT_SITE_SETTINGS, ...parsed.settings };
+      }
       state.posts = parsed.posts || [];
       state.imagePool = parsed.imagePool || [];
       if (parsed.scheduleConfig) state.scheduleConfig = parsed.scheduleConfig;
