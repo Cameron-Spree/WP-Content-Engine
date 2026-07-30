@@ -161,3 +161,55 @@ export async function updateWordPressMediaDetails(wpMediaId, details, settings) 
     return { success: false, error: err.message };
   }
 }
+
+/**
+ * Fetch existing media pool directly from live WordPress Media Library
+ */
+export async function fetchWordPressMediaPool(settings) {
+  if (!settings || !settings.wpUsername || !settings.wpAppPassword) {
+    return [];
+  }
+
+  const wpDomain = (settings.domain || "https://briantsofrisborough.co.uk").replace(/\/$/, "");
+  const cleanAppPass = settings.wpAppPassword.replace(/\s+/g, "");
+  const authHeader = "Basic " + btoa(`${settings.wpUsername}:${cleanAppPass}`);
+  const proxyUrl = getProxyEndpoint();
+
+  try {
+    const response = await fetch(proxyUrl, {
+      method: "GET",
+      headers: {
+        "Authorization": authHeader,
+        "X-WP-Domain": wpDomain,
+        "X-WP-Action": "list"
+      }
+    });
+
+    if (!response.ok) return [];
+
+    const items = await response.json();
+    if (!Array.isArray(items)) return [];
+
+    return items.map(item => {
+      const title = (item.title && item.title.rendered) ? item.title.rendered : (item.slug || "Media Asset");
+      const url = item.source_url || (item.guid && item.guid.rendered ? item.guid.rendered : "");
+      const filename = url ? url.split('/').pop() : `${item.slug}.jpg`;
+      const tags = [
+        item.media_type || "image",
+        ...(item.slug ? item.slug.split('-') : [])
+      ].filter(t => t.length > 2);
+
+      return {
+        id: `wp_${item.id}`,
+        wpMediaId: item.id,
+        title: title,
+        filename: filename,
+        url: url,
+        tags: Array.from(new Set(tags))
+      };
+    });
+  } catch (err) {
+    console.warn("Could not sync media from WordPress:", err);
+    return [];
+  }
+}

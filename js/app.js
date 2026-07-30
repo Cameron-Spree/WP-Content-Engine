@@ -9,7 +9,7 @@ import { parseAndValidateJSON } from "./utils/jsonValidator.js";
 import { autoMatchPostMedia, replaceImagePlaceholdersInHtml, buildWpUploadUrl, slugifyFilename } from "./utils/mediaMatcher.js";
 import { calculateBatchSchedule, parseFormattedDateToInput, formatInputToFormattedDate } from "./utils/scheduler.js";
 import { generateWXRXML } from "./utils/xmlGenerator.js";
-import { uploadImageToWordPress, updateWordPressMediaDetails, testWordPressApiConnection } from "./utils/wpApiSync.js";
+import { uploadImageToWordPress, updateWordPressMediaDetails, testWordPressApiConnection, fetchWordPressMediaPool } from "./utils/wpApiSync.js";
 import { getDiagnosticReport } from "./utils/debugLogger.js";
 
 // Storage Key
@@ -42,7 +42,28 @@ document.addEventListener("DOMContentLoaded", () => {
   
   // Render Initial View
   renderAll();
+
+  // Auto-sync live WordPress Media Library in the background
+  syncWordPressMedia();
 });
+
+async function syncWordPressMedia() {
+  if (state.settings && state.settings.wpUsername && state.settings.wpAppPassword) {
+    const wpItems = await fetchWordPressMediaPool(state.settings);
+    if (wpItems.length > 0) {
+      const existingUrls = new Set(state.imagePool.map(i => i.url));
+      const existingIds = new Set(state.imagePool.map(i => i.wpMediaId));
+      
+      const newItems = wpItems.filter(i => !existingUrls.has(i.url) && !existingIds.has(i.wpMediaId));
+      if (newItems.length > 0) {
+        state.imagePool = [...newItems, ...state.imagePool];
+        saveState();
+        renderMediaPool();
+        updateHeaderStats();
+      }
+    }
+  }
+}
 
 // Re-render icons once Lucide finishes loading dynamically
 window.addEventListener("libs-ready", () => {
@@ -69,7 +90,7 @@ function loadStoredState() {
     }
   }
 
-  // Keep imagePool as user state (do not auto-inject sample images)
+  // Keep imagePool as user state
   if (!state.imagePool) {
     state.imagePool = [];
   }
@@ -77,13 +98,11 @@ function loadStoredState() {
 
 function saveState() {
   try {
-    // Strip fileData base64 if it's too large (>300KB) to prevent localStorage QuotaExceededError
+    // Strip massive raw base64 fileData to keep localStorage light & prevent quota crashes,
+    // while preserving live WordPress URLs and metadata
     const savableImagePool = state.imagePool.map(img => {
-      if (img.fileData && img.fileData.length > 300000) {
-        const { fileData, ...rest } = img;
-        return rest;
-      }
-      return img;
+      const { fileData, ...rest } = img;
+      return rest;
     });
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
@@ -93,7 +112,7 @@ function saveState() {
       scheduleConfig: state.scheduleConfig
     }));
   } catch (err) {
-    console.warn("localStorage quota reached, saving state without base64 previews...", err);
+    console.warn("localStorage quota warning:", err);
     try {
       const minimalPool = state.imagePool.map(({ fileData, previewUrl, ...rest }) => rest);
       localStorage.setItem(STORAGE_KEY, JSON.stringify({

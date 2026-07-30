@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   // Set CORS headers for our own app
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Disposition, X-WP-Domain, X-WP-Action");
+  res.setHeader("Access-Control-Allow-Headers", "Authorization, Content-Type, Content-Disposition, X-WP-Domain, X-WP-Action, X-WP-Media-Id");
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
@@ -38,11 +38,20 @@ export default async function handler(req, res) {
       return res.status(response.status).send(data);
     }
 
+    if (action === "list") {
+      const targetUrl = `${wpDomain}/wp-json/wp/v2/media?per_page=50`;
+      const response = await fetch(targetUrl, {
+        method: "GET",
+        headers: { "Authorization": authHeader }
+      });
+      const data = await response.text();
+      return res.status(response.status).send(data);
+    }
+
     if (action === "update") {
       const wpMediaId = req.headers["x-wp-media-id"];
       const targetUrl = `${wpDomain}/wp-json/wp/v2/media/${wpMediaId}`;
       
-      // Collect JSON body
       const chunks = [];
       for await (const chunk of req) {
         chunks.push(chunk);
@@ -66,14 +75,12 @@ export default async function handler(req, res) {
     const contentDisp = req.headers["content-disposition"] || "attachment; filename=\"upload.jpg\"";
     const contentType = req.headers["content-type"] || "image/jpeg";
 
-    // Read full incoming binary request body from browser
     const chunks = [];
     for await (const chunk of req) {
       chunks.push(chunk);
     }
     const binaryBuffer = Buffer.concat(chunks);
 
-    // Forward server-to-server to WordPress REST API
     const wpResponse = await fetch(targetUrl, {
       method: "POST",
       headers: {
