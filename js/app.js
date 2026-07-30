@@ -875,8 +875,26 @@ function renderMediaPool() {
   const renderIngestCardHTML = (img) => {
     const displaySrc = getSafeImageDisplayUrl(img);
     const isFeatured = activeIngestFeaturedImgId === img.id;
-    const borderStyle = isFeatured ? "border: 2px solid #eab308; background: rgba(234,179,8,0.08);" : "";
-    const badgeHTML = isFeatured ? `<div style="position:absolute; top:6px; left:6px; background:#eab308; color:#000; font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; z-index:2;">⭐ Featured Cover</div>` : "";
+
+    // Detect if image is inserted in raw-json-input
+    const rawInput = document.getElementById("raw-json-input");
+    const jsonVal = rawInput ? rawInput.value : "";
+    const isBodyImage = Boolean(jsonVal && (
+      (img.url && jsonVal.includes(img.url)) ||
+      (img.filename && jsonVal.includes(img.filename)) ||
+      (img.tags && img.tags.some(t => jsonVal.toLowerCase().includes(`{{image:${t.toLowerCase()}}}`)))
+    ));
+
+    let borderStyle = "";
+    let badgeHTML = "";
+
+    if (isFeatured) {
+      borderStyle = "border: 2px solid #eab308; background: rgba(234,179,8,0.12);";
+      badgeHTML = `<div style="position:absolute; top:6px; left:6px; background:#eab308; color:#000; font-size:10px; font-weight:700; padding:3px 8px; border-radius:4px; z-index:2; box-shadow: 0 2px 6px rgba(0,0,0,0.5);">⭐ FEATURED COVER</div>`;
+    } else if (isBodyImage) {
+      borderStyle = "border: 2px solid #10b981; background: rgba(16,185,129,0.10);";
+      badgeHTML = `<div style="position:absolute; top:6px; left:6px; background:#10b981; color:#fff; font-size:10px; font-weight:700; padding:3px 8px; border-radius:4px; z-index:2; box-shadow: 0 2px 6px rgba(0,0,0,0.5);">✓ IN-BODY IMAGE</div>`;
+    }
 
     return `
     <div class="media-asset-card" data-img-id="${img.id}" style="${borderStyle} position:relative;">
@@ -894,8 +912,8 @@ function renderMediaPool() {
             <i data-lucide="star"></i> ${isFeatured ? '⭐ Active Featured Cover' : '⭐ Set as Featured Cover'}
           </button>
           <div style="display:flex; gap:4px; width:100%;">
-            <button class="btn btn-outline btn-sm btn-insert-body-img" data-img-id="${img.id}" style="flex:1; font-size:10px;" title="Insert HTML figure tag into post content">
-              <i data-lucide="plus-circle"></i> Insert Body HTML
+            <button class="btn ${isBodyImage ? 'btn-success' : 'btn-outline'} btn-sm btn-insert-body-img" data-img-id="${img.id}" style="flex:1; font-size:10px;" title="Insert HTML figure tag into post content">
+              <i data-lucide="${isBodyImage ? 'check-circle' : 'plus-circle'}"></i> ${isBodyImage ? '✓ Body Image' : '➕ Insert Body HTML'}
             </button>
             <button class="btn btn-secondary btn-sm btn-copy-placeholder-img" data-img-id="${img.id}" style="font-size:10px;" title="Copy {{IMAGE:tag}}">
               <i data-lucide="copy"></i> Copy Tag

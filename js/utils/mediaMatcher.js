@@ -147,19 +147,40 @@ export function autoMatchPostMedia(post, imagePool, settings) {
 export function replaceImagePlaceholdersInHtml(contentHtml, mappedImages, imagePool) {
   if (!contentHtml) return "";
 
-  return contentHtml.replace(/\{\{IMAGE:([a-zA-Z0-9_-]+)\}\}/g, (match, kw) => {
-    const kwLower = kw.toLowerCase();
-    let img = mappedImages ? mappedImages[kwLower] : null;
+  // Universal regex matching any placeholder format including spaces (e.g. {{IMAGE:grass strimmer}})
+  return contentHtml.replace(/\{\{IMAGE:([^}]+)\}\}/gi, (match, kw) => {
+    const rawKw = kw.trim();
+    const kwLower = rawKw.toLowerCase();
 
+    // 1. Direct dictionary match
+    let img = mappedImages ? (mappedImages[kwLower] || mappedImages[rawKw]) : null;
+
+    // 2. Search imagePool by tag, title, or filename
     if (!img && imagePool && imagePool.length > 0) {
-      img = imagePool.find(i => i.tags.some(t => t.toLowerCase() === kwLower)) || imagePool[0];
+      img = imagePool.find(i => 
+        (i.tags && i.tags.some(t => t.toLowerCase() === kwLower)) ||
+        (i.title && i.title.toLowerCase().includes(kwLower)) ||
+        (i.filename && i.filename.toLowerCase().includes(kwLower))
+      );
+
+      // Fallback: partial word match
+      if (!img) {
+        const kwWords = kwLower.split(/\s+/).filter(w => w.length > 2);
+        img = imagePool.find(i => {
+          const imgText = `${i.title || ''} ${i.filename || ''} ${(i.tags || []).join(' ')}`.toLowerCase();
+          return kwWords.some(w => imgText.includes(w));
+        });
+      }
+
+      // Default fallback to 1st image in pool
+      if (!img) img = imagePool[0];
     }
 
     if (img && img.url) {
-      return `<figure class="wp-block-image size-full"><img src="${escapeAttribute(img.url)}" alt="${escapeAttribute(img.title || kw)}" class="wp-image-asset" /><figcaption>${escapeHtml(img.title || kw)}</figcaption></figure>`;
+      return `<figure class="wp-block-image size-large"><img src="${escapeAttribute(img.url)}" alt="${escapeAttribute(img.title || rawKw)}" class="wp-image-${img.wpMediaId || ''}" /><figcaption>${escapeHtml(img.title || rawKw)}</figcaption></figure>`;
     }
 
-    return `<p><em>[Image Placeholder: ${kw}]</em></p>`;
+    return `<p><em>[Image Placeholder: ${escapeHtml(rawKw)}]</em></p>`;
   });
 }
 
