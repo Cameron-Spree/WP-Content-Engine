@@ -30,7 +30,7 @@
           <div class="logo-icon"><i data-lucide="landmark"></i></div>
           <div class="brand-text">
             <h1>WP Content Engine</h1>
-            <span class="version-badge" id="app-version-tag">v6.2.0 • Build 12:10</span>
+            <span class="version-badge" id="app-version-tag">v7.0.0 • Build 12:19</span>
           </div>
         </div>
       </div>
@@ -366,26 +366,39 @@ How to Sharpen a STIHL Chainsaw Chain at Home</textarea>
             </div>
           </div>
 
-          <!-- In-Body & Featured Image Pool Panel -->
+          <!-- Smart In-Body & Featured Cover Media Panel -->
           <div class="card">
             <div class="card-header-flex">
               <div>
-                <h3><i data-lucide="image"></i> In-Body Content Images & Featured Cover Pool</h3>
-                <p class="card-desc">Upload images for body content (used via <code>{{IMAGE:keyword}}</code> in long-form pillar content) and assign Featured Cover Images.</p>
+                <h3><i data-lucide="sparkles"></i> Smart Media Suggestions & Featured Cover Selector</h3>
+                <p class="card-desc">Search 7,000+ WordPress assets by blog title or keywords. Set your post's <strong>Featured Cover Image</strong> or insert HTML images into your post body with 1 click.</p>
               </div>
               <div class="header-buttons">
                 <label class="btn btn-secondary btn-sm" for="file-upload-input" style="cursor: pointer;">
-                  <i data-lucide="upload"></i> Upload Images
+                  <i data-lucide="upload"></i> Upload
                 </label>
                 <input type="file" id="file-upload-input" accept="image/*" multiple class="hidden">
-                <button class="btn btn-primary btn-sm" id="btn-open-add-image">
-                  <i data-lucide="plus"></i> Add URL
+                <button class="btn btn-outline btn-sm" id="btn-auto-suggest-post-media" title="Auto-search WP Library using Blog Title & Headings">
+                  <i data-lucide="wand-2"></i> Auto-Suggest
                 </button>
               </div>
             </div>
 
-            <div class="media-pool-grid" id="media-pool-container">
-              <!-- Media assets will be rendered dynamically here -->
+            <!-- In-Panel Live WordPress Media Search Bar -->
+            <div style="margin-bottom: 14px;">
+              <div style="display:flex; gap: 8px;">
+                <input type="text" id="ingest-media-search-input" class="form-input" placeholder="Search 7,000+ WP assets by keyword (e.g. stihl, chainsaw, lawnmower)...">
+                <button class="btn btn-primary btn-sm" id="btn-ingest-search-wp" style="white-space:nowrap;">
+                  <i data-lucide="search"></i> Search WP
+                </button>
+              </div>
+              <div id="ingest-active-featured-banner" style="margin-top: 8px; font-size: 11px; color: var(--accent-gold-dark); font-family: var(--font-mono);">
+                Selected Featured Cover: <span id="ingest-featured-title" style="color: #fff; font-weight:600;">(None selected — Click "⭐ Set Featured" on any image below)</span>
+              </div>
+            </div>
+
+            <div class="media-pool-grid" id="media-pool-container" style="max-height: 520px; overflow-y: auto;">
+              <!-- Media assets will be rendered dynamically here with ⭐ Set Featured and ➕ Insert HTML Body buttons -->
             </div>
           </div>
         </div>

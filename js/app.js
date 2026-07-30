@@ -419,8 +419,21 @@ function initIngestionAndMedia() {
       return;
     }
 
-    const matchedPosts = result.posts.map(post => autoMatchPostMedia(post, state.imagePool, state.settings));
+    const matchedPosts = result.posts.map(post => {
+      let matched = autoMatchPostMedia(post, state.imagePool, state.settings);
+      if (activeIngestFeaturedImgId) {
+        const selectedImg = state.imagePool.find(i => i.id === activeIngestFeaturedImgId);
+        if (selectedImg) {
+          matched.featured_image_id = selectedImg.id;
+          matched.featured_image = selectedImg;
+        }
+      }
+      return matched;
+    });
     state.posts.push(...matchedPosts);
+
+    activeIngestFeaturedImgId = null;
+    updateIngestFeaturedBanner(null);
 
     saveState();
     renderAll();
@@ -428,9 +441,59 @@ function initIngestionAndMedia() {
     rawInput.value = "";
     rawInput.dispatchEvent(new Event("input"));
 
-    showToast(`Successfully ingested ${matchedPosts.length} post(s) into queue!`, "success");
+    showToast(`Successfully ingested ${matchedPosts.length} post(s) with selected featured image into queue!`, "success");
     switchTab("tab-queue");
   });
+
+  // Debounced Auto-Suggest when typing/pasting JSON in Tab II
+  let autoSuggestTimer = null;
+  rawInput.addEventListener("input", () => {
+    clearTimeout(autoSuggestTimer);
+    autoSuggestTimer = setTimeout(() => {
+      autoSuggestMediaForCurrentJson();
+    }, 600);
+  });
+
+  const btnAutoSuggest = document.getElementById("btn-auto-suggest-post-media");
+  if (btnAutoSuggest) {
+    btnAutoSuggest.addEventListener("click", () => {
+      autoSuggestMediaForCurrentJson(true);
+    });
+  }
+
+  const btnIngestSearchWp = document.getElementById("btn-ingest-search-wp");
+  if (btnIngestSearchWp) {
+    btnIngestSearchWp.addEventListener("click", async () => {
+      const inputEl = document.getElementById("ingest-media-search-input");
+      const query = inputEl ? inputEl.value.trim() : "";
+      if (!query) {
+        showToast("Please enter a keyword to search WordPress library.", "warning");
+        return;
+      }
+      showToast(`Searching 7,000+ WordPress assets for "${query}"...`, "info");
+      const wpItems = await fetchWordPressMediaPool(state.settings, query);
+      if (wpItems.length > 0) {
+        const existingIds = new Set(state.imagePool.map(i => i.wpMediaId));
+        const newItems = wpItems.filter(i => !existingIds.has(i.wpMediaId));
+        state.imagePool = [...newItems, ...state.imagePool];
+        saveState();
+        renderMediaPool();
+        showToast(`Found ${wpItems.length} matching media assets in WordPress!`, "success");
+      } else {
+        showToast(`No WordPress media found matching "${query}".`, "warning");
+      }
+    });
+  }
+
+  const ingestSearchInput = document.getElementById("ingest-media-search-input");
+  if (ingestSearchInput) {
+    ingestSearchInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        const btn = document.getElementById("btn-ingest-search-wp");
+        if (btn) btn.click();
+      }
+    });
+  }
 
   const fileInput = document.getElementById("file-upload-input");
   if (fileInput) {
@@ -439,10 +502,6 @@ function initIngestionAndMedia() {
       fileInput.value = "";
     });
   }
-
-  document.getElementById("btn-open-add-image").addEventListener("click", () => {
-    openModal("modal-add-image");
-  });
 
   // Media Library Tab Event Listeners
   const mediaFileInput = document.getElementById("file-upload-input-media");
@@ -631,6 +690,80 @@ function renderMediaPool() {
   const container = document.getElementById("media-pool-container");
   const fullContainer = document.getElementById("full-media-library-container");
 
+// Active selected featured image ID for currently active/ingested post in Tab II
+let activeIngestFeaturedImgId = null;
+
+async function autoSuggestMediaForCurrentJson(userTriggered = false) {
+  const rawInput = document.getElementById("raw-json-input");
+  if (!rawInput) return;
+  const text = rawInput.value.trim();
+  if (!text) return;
+
+  // Extract title and headings from JSON text or HTML
+  let titleMatch = text.match(/"title"\s*:\s*"([^"]+)"/i);
+  let blogTitle = titleMatch ? titleMatch[1] : "";
+
+  if (!blogTitle) {
+    let h1Match = text.match(/<h1[^>]*>([^<]+)<\/h1>/i) || text.match(/<h2[^>]*>([^<]+)<\/h2>/i);
+    blogTitle = h1Match ? h1Match[1] : "";
+  }
+
+  if (!blogTitle && text.length > 5 && !text.startsWith("{")) {
+    blogTitle = text.split("\n")[0];
+  }
+
+  if (!blogTitle) {
+    if (userTriggered) showToast("Could not find blog title or heading in input text.", "warning");
+    return;
+  }
+
+  // Extract keywords > 3 letters
+  const stopWords = new Set(["how", "to", "the", "and", "for", "with", "your", "this", "that", "from", "what", "why", "best", "guide", "complete", "complete", "post", "blog"]);
+  const keywords = blogTitle
+    .toLowerCase()
+    .replace(/[^\w\s]/g, "")
+    .split(/\s+/)
+    .filter(w => w.length > 3 && !stopWords.has(w));
+
+  if (keywords.length === 0) return;
+
+  const primaryKeyword = keywords[0];
+  if (userTriggered) {
+    showToast(`Searching 7,000+ WordPress assets for "${primaryKeyword}"...`, "info");
+  }
+
+  const wpItems = await fetchWordPressMediaPool(state.settings, primaryKeyword);
+  if (wpItems.length > 0) {
+    const existingIds = new Set(state.imagePool.map(i => i.wpMediaId));
+    const newItems = wpItems.filter(i => !existingIds.has(i.wpMediaId));
+    if (newItems.length > 0) {
+      state.imagePool = [...newItems, ...state.imagePool];
+      saveState();
+    }
+
+    // Auto-select top match as featured image for this post
+    activeIngestFeaturedImgId = wpItems[0].id;
+    updateIngestFeaturedBanner(wpItems[0].title);
+    renderMediaPool();
+    if (userTriggered) {
+      showToast(`Auto-matched ${wpItems.length} WordPress media assets! Set featured cover to "${wpItems[0].title}".`, "success");
+    }
+  } else if (userTriggered) {
+    showToast(`No WordPress media found for title keyword "${primaryKeyword}".`, "warning");
+  }
+}
+
+function updateIngestFeaturedBanner(title) {
+  const bannerEl = document.getElementById("ingest-featured-title");
+  if (bannerEl) {
+    bannerEl.textContent = title ? `⭐ ${title}` : "(None selected — Click '⭐ Set Featured' on any image below)";
+  }
+}
+
+function renderMediaPool() {
+  const container = document.getElementById("media-pool-container");
+  const fullContainer = document.getElementById("full-media-library-container");
+
   let images = [...state.imagePool];
 
   // Apply search filter if active
@@ -656,7 +789,8 @@ function renderMediaPool() {
   const galleryCountEl = document.getElementById("media-gallery-count");
   if (galleryCountEl) galleryCountEl.textContent = `${images.length} Asset${images.length !== 1 ? "s" : ""}`;
 
-  const renderCardHTML = (img) => {
+  // Card renderer for Tab III (Full Media Library)
+  const renderLibraryCardHTML = (img) => {
     const displaySrc = getSafeImageDisplayUrl(img);
     return `
     <div class="media-asset-card" data-img-id="${img.id}">
@@ -683,18 +817,105 @@ function renderMediaPool() {
     </div>`;
   };
 
+  // Card renderer for Tab II (Smart Featured Cover & In-Body Panel)
+  const renderIngestCardHTML = (img) => {
+    const displaySrc = getSafeImageDisplayUrl(img);
+    const isFeatured = activeIngestFeaturedImgId === img.id;
+    const borderStyle = isFeatured ? "border: 2px solid #eab308; background: rgba(234,179,8,0.08);" : "";
+    const badgeHTML = isFeatured ? `<div style="position:absolute; top:6px; left:6px; background:#eab308; color:#000; font-size:10px; font-weight:700; padding:2px 8px; border-radius:4px; z-index:2;">⭐ Featured Cover</div>` : "";
+
+    return `
+    <div class="media-asset-card" data-img-id="${img.id}" style="${borderStyle} position:relative;">
+      ${badgeHTML}
+      <div class="media-asset-img-wrapper">
+        <img src="${escapeHtml(displaySrc)}" alt="${escapeHtml(img.title)}" loading="lazy" onerror="recordImageError('${img.id}', '${escapeHtml(displaySrc)}');this.onerror=null;this.style.display='none';this.parentElement.innerHTML='<div style=\'display:flex;align-items:center;justify-content:center;height:100%;background:rgba(0,0,0,0.3);color:var(--text-muted);font-size:11px;\'>No Preview</div>'" />
+      </div>
+      <div class="media-asset-details">
+        <div class="media-asset-title" title="${escapeHtml(img.title)}">${escapeHtml(img.title)}</div>
+        <div style="font-family: var(--font-mono); font-size: 10px; color: var(--accent-gold-dark); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(img.url)}">
+          ${escapeHtml(img.filename || img.url.split('/').pop())}
+        </div>
+        <div class="media-asset-actions" style="flex-direction:column; gap:6px;">
+          <button class="btn ${isFeatured ? 'btn-success' : 'btn-primary'} btn-sm btn-set-featured-img" data-img-id="${img.id}" style="width:100%;">
+            <i data-lucide="star"></i> ${isFeatured ? '⭐ Active Featured Cover' : '⭐ Set as Featured Cover'}
+          </button>
+          <div style="display:flex; gap:4px; width:100%;">
+            <button class="btn btn-outline btn-sm btn-insert-body-img" data-img-id="${img.id}" style="flex:1; font-size:10px;" title="Insert HTML figure tag into post content">
+              <i data-lucide="plus-circle"></i> Insert Body HTML
+            </button>
+            <button class="btn btn-secondary btn-sm btn-copy-placeholder-img" data-img-id="${img.id}" style="font-size:10px;" title="Copy {{IMAGE:tag}}">
+              <i data-lucide="copy"></i> Copy Tag
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  };
+
   const emptyHTML = `
     <div class="empty-placeholder" style="text-align:center; padding: 40px; color: var(--text-muted); grid-column: 1 / -1;">
       <i data-lucide="image-off" style="width:36px; height:36px; margin-bottom:8px;"></i>
-      <p>No images match your query. Click "Upload Images" or "Add URL" to populate asset pool.</p>
+      <p>No images match your query. Click "Upload" or type a keyword to search 7,000+ WordPress library.</p>
     </div>`;
 
-  const cardsHTML = images.length > 0 ? images.map(renderCardHTML).join("") : emptyHTML;
+  if (container) {
+    container.innerHTML = images.length > 0 ? images.map(renderIngestCardHTML).join("") : emptyHTML;
+  }
+  if (fullContainer) {
+    fullContainer.innerHTML = images.length > 0 ? images.map(renderLibraryCardHTML).join("") : emptyHTML;
+  }
 
-  if (container) container.innerHTML = cardsHTML;
-  if (fullContainer) fullContainer.innerHTML = cardsHTML;
+  // Attach event handlers for Tab II buttons
+  document.querySelectorAll(".btn-set-featured-img").forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const imgId = btn.getAttribute("data-img-id");
+      activeIngestFeaturedImgId = imgId;
+      const img = state.imagePool.find(i => i.id === imgId);
+      if (img) {
+        updateIngestFeaturedBanner(img.title);
+        showToast(`Selected "${img.title}" as Featured Cover Image for this post!`, "success");
+      }
+      renderMediaPool();
+    };
+  });
 
-  // Attach event handlers
+  document.querySelectorAll(".btn-insert-body-img").forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const imgId = btn.getAttribute("data-img-id");
+      const img = state.imagePool.find(i => i.id === imgId);
+      if (img) {
+        const rawInput = document.getElementById("raw-json-input");
+        if (rawInput) {
+          const htmlSnippet = `\n<figure class="wp-block-image size-large"><img src="${img.url}" alt="${escapeHtml(img.title)}" class="wp-image-${img.wpMediaId || ''}" /><figcaption>${escapeHtml(img.title)}</figcaption></figure>\n`;
+          
+          // Insert at cursor position or append
+          const start = rawInput.selectionStart || rawInput.value.length;
+          const end = rawInput.selectionEnd || rawInput.value.length;
+          rawInput.value = rawInput.value.substring(0, start) + htmlSnippet + rawInput.value.substring(end);
+          rawInput.dispatchEvent(new Event("input"));
+          showToast(`Inserted image HTML tag for "${img.title}" into post content!`, "success");
+        }
+      }
+    };
+  });
+
+  document.querySelectorAll(".btn-copy-placeholder-img").forEach(btn => {
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      const imgId = btn.getAttribute("data-img-id");
+      const img = state.imagePool.find(i => i.id === imgId);
+      if (img) {
+        const kw = (img.tags && img.tags[0]) ? img.tags[0] : (img.filename ? img.filename.split('.')[0] : "photo");
+        const placeholder = `{{IMAGE:${kw}}}`;
+        navigator.clipboard.writeText(placeholder).then(() => {
+          showToast(`Copied placeholder ${placeholder} to clipboard!`, "info");
+        });
+      }
+    };
+  });
+
   document.querySelectorAll(".btn-delete-img").forEach(btn => {
     btn.onclick = (e) => {
       e.stopPropagation();
