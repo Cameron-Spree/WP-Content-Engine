@@ -110,7 +110,13 @@ export function getDiagnosticReport(state) {
     title: p.title,
     hasFeaturedImage: Boolean(p.featured_image),
     featuredImageTitle: p.featured_image ? p.featured_image.title : "None",
-    featuredImageUrl: p.featured_image ? (p.featured_image.previewUrl || p.featured_image.url) : "None"
+    featuredImageUrl: p.featured_image ? (p.featured_image.previewUrl || p.featured_image.url) : "None",
+    isFeaturedManual: Boolean(p.featured_image_manual),
+    mappedImages: p.mapped_images ? Object.entries(p.mapped_images).map(([kw, img]) => ({
+      placeholder: kw,
+      mappedTitle: img ? img.title : "None",
+      mappedUrl: img ? img.url : "None"
+    })) : []
   })) : [];
 
   const slowResources = perfEntries

@@ -420,21 +420,21 @@ function initIngestionAndMedia() {
     }
 
     const matchedPosts = result.posts.map(post => {
-      let matched = autoMatchPostMedia(post, state.imagePool, state.settings);
       if (activeIngestFeaturedImgId) {
         const selectedImg = state.imagePool.find(i => i.id === activeIngestFeaturedImgId);
         if (selectedImg) {
-          matched.featured_image_id = selectedImg.id;
-          matched.featured_image = selectedImg;
-          matched.featured_image_manual = isManualFeaturedSelection;
+          post.featured_image_id = selectedImg.id;
+          post.featured_image = selectedImg;
+          post.featured_image_manual = isManualFeaturedSelection;
         }
       }
-      return matched;
+      return autoMatchPostMedia(post, state.imagePool, state.settings, activeIngestBodyImgIds);
     });
     state.posts.push(...matchedPosts);
 
     activeIngestFeaturedImgId = null;
     isManualFeaturedSelection = false;
+    activeIngestBodyImgIds.length = 0;
     updateIngestFeaturedBanner(null);
 
     saveState();
@@ -689,9 +689,10 @@ function getSafeImageDisplayUrl(imgOrUrl) {
   return targetUrl;
 }
 
-// Active selected featured image ID for currently active/ingested post in Tab II
+// Active selected featured & body image IDs for currently active/ingested post in Tab II
 let activeIngestFeaturedImgId = null;
 let isManualFeaturedSelection = false;
+const activeIngestBodyImgIds = [];
 
 async function autoSuggestMediaForCurrentJson(userTriggered = false) {
   const rawInput = document.getElementById("raw-json-input");
@@ -957,6 +958,9 @@ function renderMediaPool() {
       const imgId = btn.getAttribute("data-img-id");
       const img = state.imagePool.find(i => i.id === imgId);
       if (img) {
+        if (!activeIngestBodyImgIds.includes(imgId)) {
+          activeIngestBodyImgIds.push(imgId);
+        }
         const rawInput = document.getElementById("raw-json-input");
         if (rawInput) {
           const htmlSnippet = `\n<figure class="wp-block-image size-large"><img src="${img.url}" alt="${escapeHtml(img.title)}" class="wp-image-${img.wpMediaId || ''}" /><figcaption>${escapeHtml(img.title)}</figcaption></figure>\n`;
@@ -968,6 +972,7 @@ function renderMediaPool() {
           rawInput.dispatchEvent(new Event("input"));
           showToast(`Inserted image HTML tag for "${img.title}" into post content!`, "success");
         }
+        renderMediaPool();
       }
     };
   });
@@ -1610,14 +1615,19 @@ function renderDebugConsole() {
   if (imgsEl) {
     let html = "";
     if (report.postQueueInspectorSamples && report.postQueueInspectorSamples.length > 0) {
-      html += `<div style="font-weight:700; color:var(--accent-gold-dark); margin-bottom:4px;">Post Queue Featured Images (${report.postsCount} Total Posts):</div>`;
-      html += report.postQueueInspectorSamples.map(p => `
-        <div style="margin-bottom:6px; padding-bottom:4px; border-bottom: 1px dashed rgba(255,255,255,0.1);">
+      html += `<div style="font-weight:700; color:var(--accent-gold-dark); margin-bottom:4px;">Post Queue Featured & Body Images (${report.postsCount} Total Posts):</div>`;
+      html += report.postQueueInspectorSamples.map(p => {
+        let mapsHtml = (p.mappedImages || []).map(m => `
+          <div style="font-size:10px; color:#10b981; margin-left:8px;">• {{IMAGE:${escapeHtml(m.placeholder)}}}: ${escapeHtml(m.mappedTitle)}</div>
+        `).join("");
+        return `
+        <div style="margin-bottom:8px; padding-bottom:6px; border-bottom: 1px dashed rgba(255,255,255,0.15);">
           <strong>[Post #${escapeHtml(p.id)}] ${escapeHtml(p.title)}</strong>
-          <div style="font-size:10px; color:${p.hasFeaturedImage ? '#10b981' : '#ef4444'};">Featured Image: ${escapeHtml(p.featuredImageTitle)} (${p.hasFeaturedImage ? 'ATTACHED' : 'NONE'})</div>
-          <div style="font-size:10px; color: var(--text-muted); overflow-x: auto;">URL: ${escapeHtml(p.featuredImageUrl)}</div>
+          <div style="font-size:10px; color:${p.hasFeaturedImage ? '#eab308' : '#ef4444'};">⭐ Featured Cover: ${escapeHtml(p.featuredImageTitle)} (${p.isFeaturedManual ? 'MANUAL LOCK' : 'AUTO'})</div>
+          ${mapsHtml}
         </div>
-      `).join("");
+      `;
+      }).join("");
     } else {
       html += `<div style="color:var(--text-muted);">No posts in queue to inspect.</div>`;
     }

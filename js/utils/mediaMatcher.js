@@ -69,7 +69,7 @@ export function slugifyFilename(name) {
   return `${cleanBase || "image"}.${ext.toLowerCase()}`;
 }
 
-export function autoMatchPostMedia(post, imagePool, settings) {
+export function autoMatchPostMedia(post, imagePool, settings, manualBodyImgIds = []) {
   if (!imagePool || imagePool.length === 0) {
     return post;
   }
@@ -122,16 +122,27 @@ export function autoMatchPostMedia(post, imagePool, settings) {
   }
 
   // Match body placeholders ensuring distinct images for each placeholder
-  const mappedImages = {};
+  const mappedImages = post.mapped_images ? { ...post.mapped_images } : {};
   const placeholders = post.image_placeholders || [];
 
   placeholders.forEach((keyword, idx) => {
     const kwLower = keyword.toLowerCase().trim();
+    let matchedImage = null;
     
+    // 0. User explicit manual body image selection for this slot
+    if (manualBodyImgIds && manualBodyImgIds[idx]) {
+      const explicitImg = imagePool.find(img => img.id === manualBodyImgIds[idx]);
+      if (explicitImg && !usedImageIds.has(explicitImg.id)) {
+        matchedImage = explicitImg;
+      }
+    }
+
     // 1. Exact tag match not used yet
-    let matchedImage = imagePool.find(img => 
-      !usedImageIds.has(img.id) && img.tags.some(tag => tag.toLowerCase().trim() === kwLower)
-    );
+    if (!matchedImage) {
+      matchedImage = imagePool.find(img => 
+        !usedImageIds.has(img.id) && img.tags.some(tag => tag.toLowerCase().trim() === kwLower)
+      );
+    }
 
     // 2. Partial match not used yet
     if (!matchedImage) {
