@@ -2,6 +2,42 @@
  * Smart Media Matcher & WordPress Path Builder for WP Content Engine
  */
 
+const PRODUCT_NOUNS = [
+  "strimmer", "strimmers", "lawnmower", "lawnmowers", "chainsaw", "chainsaws",
+  "brushcutter", "brushcutters", "hedgetrimmer", "hedgetrimmers", "blower", "blowers",
+  "mower", "mowers", "imow", "stihl", "honda", "husqvarna", "viking", "mountfield",
+  "hayter", "toro", "cub cadet", "countax", "atco", "karcher", "al-ko", "ego",
+  "grass", "lawn", "hedge", "tree", "wood", "garden", "mulcher", "shredder",
+  "scarifier", "tiller", "generator", "pressure washer", "robotic", "robot",
+  "chaps", "helmet", "oil", "chain", "blade", "battery", "cordless", "petrol"
+];
+
+const STOP_WORDS = new Set([
+  "what", "do", "does", "did", "need", "needs", "know", "about", "how", "to",
+  "the", "and", "or", "for", "with", "your", "my", "our", "this", "that", "from",
+  "why", "when", "where", "which", "who", "best", "top", "ultimate", "buying",
+  "buyer", "buyers", "guide", "complete", "post", "blog", "everything", "should",
+  "could", "would", "make", "take", "give", "help", "things", "ways", "tips",
+  "tricks", "review", "reviews", "versus", "comparison", "essential"
+]);
+
+export function extractSmartMediaKeywords(titleText) {
+  if (!titleText) return [];
+
+  const cleanText = titleText.toLowerCase().replace(/[^\w\s]/g, " ");
+  const words = cleanText.split(/\s+/).filter(w => w.length > 2);
+
+  // High-priority product nouns (e.g. strimmers, lawnmower, chainsaw)
+  const matchedProducts = words.filter(w => PRODUCT_NOUNS.some(p => p === w || (w.length > 4 && (p.includes(w) || w.includes(p)))));
+
+  // Filter out non-product stop words
+  const cleanWords = words.filter(w => w.length > 3 && !STOP_WORDS.has(w));
+
+  // Combine product nouns at the top
+  const result = Array.from(new Set([...matchedProducts, ...cleanWords]));
+  return result;
+}
+
 export function buildWpUploadUrl(filename, settings) {
   const domain = (settings && settings.domain) ? settings.domain.replace(/\/$/, "") : "https://briantsofrisborough.co.uk";
   const year = (settings && settings.uploadYear) ? settings.uploadYear : "2026";
@@ -36,7 +72,6 @@ export function autoMatchPostMedia(post, imagePool, settings) {
   placeholders.forEach(keyword => {
     const kwLower = keyword.toLowerCase().trim();
     
-    // Find image whose tags include this keyword
     const matchedImage = imagePool.find(img => 
       img.tags.some(tag => tag.toLowerCase().trim() === kwLower)
     );
@@ -44,7 +79,6 @@ export function autoMatchPostMedia(post, imagePool, settings) {
     if (matchedImage) {
       mappedImages[keyword] = matchedImage;
     } else {
-      // Fallback: match by partial tag or title
       const partialMatch = imagePool.find(img => 
         img.tags.some(tag => tag.toLowerCase().includes(kwLower) || kwLower.includes(tag.toLowerCase())) ||
         (img.title && img.title.toLowerCase().includes(kwLower))
@@ -60,15 +94,8 @@ export function autoMatchPostMedia(post, imagePool, settings) {
   }
 
   if (!featuredImage && post.title) {
-    // Extract significant words (>3 letters) from post title
-    const stopWords = new Set(["how", "to", "the", "and", "for", "with", "your", "this", "that", "from", "what", "why", "best", "guide", "complete", "complete"]);
-    const titleWords = post.title
-      .toLowerCase()
-      .replace(/[^\w\s]/g, "")
-      .split(/\s+/)
-      .filter(w => w.length > 3 && !stopWords.has(w));
+    const titleWords = extractSmartMediaKeywords(post.title);
 
-    // Score every image in the pool based on matching title words
     let bestScore = 0;
     let bestMatch = null;
 
@@ -76,9 +103,10 @@ export function autoMatchPostMedia(post, imagePool, settings) {
       let score = 0;
       const imgText = `${img.title || ''} ${img.filename || ''} ${(img.tags || []).join(' ')}`.toLowerCase();
 
-      titleWords.forEach(word => {
+      titleWords.forEach((word, idx) => {
         if (imgText.includes(word)) {
-          score += 2;
+          // Extra weight for product nouns matched near beginning
+          score += (idx === 0 ? 5 : 2);
         }
       });
 
@@ -108,9 +136,6 @@ export function autoMatchPostMedia(post, imagePool, settings) {
   };
 }
 
-/**
- * Replaces {{IMAGE:keyword}} in content HTML with actual HTML img tags linked to resolved image URLs
- */
 export function replaceImagePlaceholdersInHtml(contentHtml, mappedImages, imagePool) {
   if (!contentHtml) return "";
 
@@ -143,5 +168,7 @@ function escapeHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }

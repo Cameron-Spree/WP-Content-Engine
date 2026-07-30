@@ -6,7 +6,7 @@
 import { DEFAULT_SITE_SETTINGS, SAMPLE_IMAGE_POOL, SAMPLE_POST_PAYLOADS } from "./utils/sampleData.js";
 import { generateAIPrompt } from "./utils/promptTemplates.js";
 import { parseAndValidateJSON } from "./utils/jsonValidator.js";
-import { autoMatchPostMedia, replaceImagePlaceholdersInHtml, buildWpUploadUrl, slugifyFilename } from "./utils/mediaMatcher.js";
+import { autoMatchPostMedia, replaceImagePlaceholdersInHtml, buildWpUploadUrl, slugifyFilename, extractSmartMediaKeywords } from "./utils/mediaMatcher.js";
 import { calculateBatchSchedule, parseFormattedDateToInput, formatInputToFormattedDate } from "./utils/scheduler.js";
 import { generateWXRXML } from "./utils/xmlGenerator.js";
 import { uploadImageToWordPress, updateWordPressMediaDetails, testWordPressApiConnection, fetchWordPressMediaPool } from "./utils/wpApiSync.js";
@@ -714,13 +714,8 @@ async function autoSuggestMediaForCurrentJson(userTriggered = false) {
     return;
   }
 
-  // Extract keywords > 3 letters
-  const stopWords = new Set(["how", "to", "the", "and", "for", "with", "your", "this", "that", "from", "what", "why", "best", "guide", "complete", "complete", "post", "blog"]);
-  const keywords = blogTitle
-    .toLowerCase()
-    .replace(/[^\w\s]/g, "")
-    .split(/\s+/)
-    .filter(w => w.length > 3 && !stopWords.has(w));
+  // Extract smart product keywords (e.g. strimmers, lawnmower, chainsaw)
+  const keywords = extractSmartMediaKeywords(blogTitle);
 
   if (keywords.length === 0) return;
 
