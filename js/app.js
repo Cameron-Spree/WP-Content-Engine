@@ -799,15 +799,14 @@ function updateBodyImagesCountBadge() {
   if (!rawInput || !badgeEl) return;
 
   const val = rawInput.value || "";
+  // Count ONLY actual HTML <img> tags explicitly inserted from the right panel!
   const imgTagMatches = (val.match(/<img[^>]+>/gi) || []).length;
-  const placeholderMatches = (val.match(/\{\{IMAGE:[^}]+\}\}/gi) || []).length;
-  const total = imgTagMatches + placeholderMatches;
 
   const targetCountEl = document.getElementById("prompt-images-count");
   const target = targetCountEl ? targetCountEl.value : "4";
 
-  badgeEl.textContent = `In-Body Images Inserted: ${total} / ${target}`;
-  if (total > 0) {
+  badgeEl.textContent = `In-Body Images Inserted: ${imgTagMatches} / ${target}`;
+  if (imgTagMatches > 0) {
     badgeEl.className = "badge badge-success";
   } else {
     badgeEl.className = "badge badge-info";
@@ -876,13 +875,12 @@ function renderMediaPool() {
     const displaySrc = getSafeImageDisplayUrl(img);
     const isFeatured = activeIngestFeaturedImgId === img.id;
 
-    // Detect if image is inserted in raw-json-input
+    // Detect if actual image URL or filename is inserted in raw-json-input
     const rawInput = document.getElementById("raw-json-input");
     const jsonVal = rawInput ? rawInput.value : "";
     const isBodyImage = Boolean(jsonVal && (
       (img.url && jsonVal.includes(img.url)) ||
-      (img.filename && jsonVal.includes(img.filename)) ||
-      (img.tags && img.tags.some(t => jsonVal.toLowerCase().includes(`{{image:${t.toLowerCase()}}}`)))
+      (img.filename && jsonVal.includes(img.filename))
     ));
 
     let borderStyle = "";
