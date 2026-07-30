@@ -72,12 +72,36 @@ function loadStoredState() {
 }
 
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
-    settings: state.settings,
-    posts: state.posts,
-    imagePool: state.imagePool,
-    scheduleConfig: state.scheduleConfig
-  }));
+  try {
+    // Strip fileData base64 if it's too large (>300KB) to prevent localStorage QuotaExceededError
+    const savableImagePool = state.imagePool.map(img => {
+      if (img.fileData && img.fileData.length > 300000) {
+        const { fileData, ...rest } = img;
+        return rest;
+      }
+      return img;
+    });
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      settings: state.settings,
+      posts: state.posts,
+      imagePool: savableImagePool,
+      scheduleConfig: state.scheduleConfig
+    }));
+  } catch (err) {
+    console.warn("localStorage quota reached, saving state without base64 previews...", err);
+    try {
+      const minimalPool = state.imagePool.map(({ fileData, previewUrl, ...rest }) => rest);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        settings: state.settings,
+        posts: state.posts,
+        imagePool: minimalPool,
+        scheduleConfig: state.scheduleConfig
+      }));
+    } catch (err2) {
+      console.warn("Could not save state to localStorage", err2);
+    }
+  }
   updateHeaderStats();
 }
 
@@ -386,43 +410,12 @@ function initIngestionAndMedia() {
   });
 
   const fileInput = document.getElementById("file-upload-input");
-  fileInput.addEventListener("change", (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-
-    files.forEach(file => {
-      const filename = slugifyFilename(file.name);
-      const computedWpUrl = buildWpUploadUrl(filename, state.settings);
-      const reader = new FileReader();
-
-      reader.onload = (event) => {
-        const dataUrl = event.target.result;
-        const tags = extractTagsFromFilename(filename);
-
-        const newImg = {
-          id: "img_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4),
-          filename: filename,
-          url: computedWpUrl,
-          previewUrl: dataUrl,
-          title: file.name.split(".")[0].replace(/[-_]/g, " "),
-          tags: tags,
-          fileData: dataUrl
-        };
-
-        state.imagePool.push(newImg);
-
-        state.posts = state.posts.map(p => autoMatchPostMedia(p, state.imagePool, state.settings));
-
-        saveState();
-        renderAll();
-      };
-
-      reader.readAsDataURL(file);
+  if (fileInput) {
+    fileInput.addEventListener("change", (e) => {
+      processUploadedImageFiles(e.target.files);
+      fileInput.value = "";
     });
-
-    showToast(`Uploaded ${files.length} image(s). WP URLs & tags calculated!`, "success");
-    fileInput.value = "";
-  });
+  }
 
   document.getElementById("btn-open-add-image").addEventListener("click", () => {
     openModal("modal-add-image");
@@ -432,42 +425,92 @@ function initIngestionAndMedia() {
   const mediaFileInput = document.getElementById("file-upload-input-media");
   if (mediaFileInput) {
     mediaFileInput.addEventListener("change", (e) => {
-      const files = Array.from(e.target.files);
-      if (files.length === 0) return;
-
-      files.forEach(file => {
-        const filename = slugifyFilename(file.name);
-        const computedWpUrl = buildWpUploadUrl(filename, state.settings);
-        const reader = new FileReader();
-
-        reader.onload = (event) => {
-          const dataUrl = event.target.result;
-          const tags = extractTagsFromFilename(filename);
-
-          const newImg = {
-            id: "img_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4),
-            filename: filename,
-            url: computedWpUrl,
-            previewUrl: dataUrl,
-            title: file.name.split(".")[0].replace(/[-_]/g, " "),
-            tags: tags,
-            fileData: dataUrl
-          };
-
-          state.imagePool.push(newImg);
-          state.posts = state.posts.map(p => autoMatchPostMedia(p, state.imagePool, state.settings));
-
-          saveState();
-          renderAll();
-        };
-
-        reader.readAsDataURL(file);
-      });
-
-      showToast(`Uploaded ${files.length} image(s) to Media Library.`, "success");
+      processUploadedImageFiles(e.target.files);
       mediaFileInput.value = "";
     });
   }
+
+  // Drag and drop upload listeners for Media Library container
+  const mediaContainer = document.getElementById("full-media-library-container");
+  if (mediaContainer) {
+    ["dragenter", "dragover"].forEach(eventName => {
+      mediaContainer.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        mediaContainer.style.border = "2px dashed var(--accent-gold-dark)";
+      }, false);
+    });
+
+    ["dragleave", "drop"].forEach(eventName => {
+      mediaContainer.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        mediaContainer.style.border = "none";
+      }, false);
+    });
+
+    mediaContainer.addEventListener("drop", (e) => {
+      const dt = e.dataTransfer;
+      const files = dt.files;
+      processUploadedImageFiles(files);
+    });
+  }
+
+function processUploadedImageFiles(files) {
+  const fileArray = Array.from(files).filter(f => f.type.startsWith("image/") || /\.(png|jpe?g|gif|webp|svg|avif|bmp|heic)$/i.test(f.name));
+
+  if (fileArray.length === 0) {
+    showToast("Please select valid image files (JPG, PNG, WEBP, etc.).", "warning");
+    return;
+  }
+
+  let processedCount = 0;
+
+  fileArray.forEach(file => {
+    const filename = slugifyFilename(file.name);
+    const computedWpUrl = buildWpUploadUrl(filename, state.settings);
+    let objectUrl = null;
+    try {
+      objectUrl = URL.createObjectURL(file);
+    } catch (e) {
+      // fallback to FileReader
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+      const dataUrl = event.target.result;
+      const tags = extractTagsFromFilename(filename);
+
+      const newImg = {
+        id: "img_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4),
+        filename: filename,
+        url: computedWpUrl,
+        previewUrl: objectUrl || dataUrl,
+        title: file.name.split(".")[0].replace(/[-_]/g, " "),
+        tags: tags,
+        fileData: dataUrl
+      };
+
+      state.imagePool.push(newImg);
+      state.posts = state.posts.map(p => autoMatchPostMedia(p, state.imagePool, state.settings));
+
+      processedCount++;
+      if (processedCount === fileArray.length) {
+        saveState();
+        renderAll();
+        showToast(`Successfully added ${fileArray.length} image(s) to Media Library!`, "success");
+      }
+    };
+
+    reader.onerror = (err) => {
+      console.error("FileReader error for file:", file.name, err);
+      showToast(`Error reading file: ${file.name}`, "error");
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
 
   const btnAddImgMedia = document.getElementById("btn-open-add-image-media");
   if (btnAddImgMedia) {
