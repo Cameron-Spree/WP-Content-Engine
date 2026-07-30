@@ -74,26 +74,8 @@ export function autoMatchPostMedia(post, imagePool, settings) {
     return post;
   }
 
-  const mappedImages = {};
-  const placeholders = post.image_placeholders || [];
-
-  placeholders.forEach(keyword => {
-    const kwLower = keyword.toLowerCase().trim();
-    
-    const matchedImage = imagePool.find(img => 
-      img.tags.some(tag => tag.toLowerCase().trim() === kwLower)
-    );
-
-    if (matchedImage) {
-      mappedImages[keyword] = matchedImage;
-    } else {
-      const partialMatch = imagePool.find(img => 
-        img.tags.some(tag => tag.toLowerCase().includes(kwLower) || kwLower.includes(tag.toLowerCase())) ||
-        (img.title && img.title.toLowerCase().includes(kwLower))
-      );
-      mappedImages[keyword] = partialMatch || imagePool[0];
-    }
-  });
+  // Track used images so featured cover & body placeholders get unique, distinct images!
+  const usedImageIds = new Set();
 
   // Assign featured image based on Title-Keyword Matching algorithm (preserving explicit user selections)
   let featuredImage = post.featured_image || null;
@@ -113,7 +95,6 @@ export function autoMatchPostMedia(post, imagePool, settings) {
 
       titleNouns.forEach((noun, idx) => {
         if (imgText.includes(noun)) {
-          // Extra weight for subject nouns
           score += (idx === 0 ? 5 : 2);
         }
       });
@@ -133,8 +114,46 @@ export function autoMatchPostMedia(post, imagePool, settings) {
     const postTags = [...(post.categories || []), ...(post.tags || [])].map(t => t.toLowerCase());
     featuredImage = imagePool.find(img => 
       img.tags.some(tag => postTags.includes(tag.toLowerCase()))
-    ) || (Object.values(mappedImages)[0]) || imagePool[0];
+    ) || imagePool[0];
   }
+
+  if (featuredImage && featuredImage.id) {
+    usedImageIds.add(featuredImage.id);
+  }
+
+  // Match body placeholders ensuring distinct images for each placeholder
+  const mappedImages = {};
+  const placeholders = post.image_placeholders || [];
+
+  placeholders.forEach((keyword, idx) => {
+    const kwLower = keyword.toLowerCase().trim();
+    
+    // 1. Exact tag match not used yet
+    let matchedImage = imagePool.find(img => 
+      !usedImageIds.has(img.id) && img.tags.some(tag => tag.toLowerCase().trim() === kwLower)
+    );
+
+    // 2. Partial match not used yet
+    if (!matchedImage) {
+      matchedImage = imagePool.find(img => 
+        !usedImageIds.has(img.id) && (
+          img.tags.some(tag => tag.toLowerCase().includes(kwLower) || kwLower.includes(tag.toLowerCase())) ||
+          (img.title && img.title.toLowerCase().includes(kwLower))
+        )
+      );
+    }
+
+    // 3. Distinct fallback: pick unique unused image from pool
+    if (!matchedImage) {
+      const unusedPool = imagePool.filter(img => !usedImageIds.has(img.id));
+      matchedImage = unusedPool.length > 0 ? unusedPool[idx % unusedPool.length] : imagePool[(idx + 1) % imagePool.length];
+    }
+
+    if (matchedImage) {
+      if (matchedImage.id) usedImageIds.add(matchedImage.id);
+      mappedImages[keyword] = matchedImage;
+    }
+  });
 
   return {
     ...post,
@@ -144,11 +163,11 @@ export function autoMatchPostMedia(post, imagePool, settings) {
   };
 }
 
-export function replaceImagePlaceholdersInHtml(contentHtml, mappedImages, imagePool) {
+export function replaceImagePlaceholdersInHtml(contentHtml, mappedImages, imagePool, getSafeDisplayUrlFn = null) {
   if (!contentHtml) return "";
 
   // Universal regex matching any placeholder format including spaces (e.g. {{IMAGE:grass strimmer}})
-  return contentHtml.replace(/\{\{IMAGE:([^}]+)\}\}/gi, (match, kw) => {
+  let html = contentHtml.replace(/\{\{IMAGE:([^}]+)\}\}/gi, (match, kw) => {
     const rawKw = kw.trim();
     const kwLower = rawKw.toLowerCase();
 
@@ -177,11 +196,22 @@ export function replaceImagePlaceholdersInHtml(contentHtml, mappedImages, imageP
     }
 
     if (img && img.url) {
-      return `<figure class="wp-block-image size-large"><img src="${escapeAttribute(img.url)}" alt="${escapeAttribute(img.title || rawKw)}" class="wp-image-${img.wpMediaId || ''}" /><figcaption>${escapeHtml(img.title || rawKw)}</figcaption></figure>`;
+      const displayUrl = getSafeDisplayUrlFn ? getSafeDisplayUrlFn(img) : img.url;
+      return `<figure class="wp-block-image size-large is-resized aligncenter" style="margin:24px 0; text-align:center;"><img src="${escapeAttribute(displayUrl)}" alt="${escapeAttribute(img.title || rawKw)}" class="wp-image-${img.wpMediaId || ''}" style="width:100%; max-width:100%; max-height:480px; object-fit:cover; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.15);" /><figcaption style="font-size:12px; color:#888; margin-top:6px; font-style:italic;">${escapeHtml(img.title || rawKw)}</figcaption></figure>`;
     }
 
     return `<p><em>[Image Placeholder: ${escapeHtml(rawKw)}]</em></p>`;
   });
+
+  // Proxy direct <img src="..."> tags for live preview containers if getSafeDisplayUrlFn is provided
+  if (getSafeDisplayUrlFn) {
+    html = html.replace(/src=["'](https?:\/\/[^"']+)["']/gi, (match, url) => {
+      const safeUrl = getSafeDisplayUrlFn(url);
+      return `src="${escapeAttribute(safeUrl)}"`;
+    });
+  }
+
+  return html;
 }
 
 function escapeAttribute(str) {

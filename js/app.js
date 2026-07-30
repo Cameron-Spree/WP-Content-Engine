@@ -1359,7 +1359,7 @@ function openPostPreview(postId) {
     featBox.innerHTML = "";
   }
 
-  const renderedHtml = replaceImagePlaceholdersInHtml(post.content_html, post.mapped_images, state.imagePool);
+  const renderedHtml = replaceImagePlaceholdersInHtml(post.content_html, post.mapped_images, state.imagePool, getSafeImageDisplayUrl);
   document.getElementById("preview-html-content").innerHTML = renderedHtml;
 
   openModal("modal-preview");
