@@ -484,13 +484,28 @@ function initIngestionAndMedia() {
       }
       showToast(`Searching 7,000+ WordPress assets for "${query}"...`, "info");
       const wpItems = await fetchWordPressMediaPool(state.settings, query);
-      if (wpItems.length > 0) {
-        const existingIds = new Set(state.imagePool.map(i => i.wpMediaId));
-        const newItems = wpItems.filter(i => !existingIds.has(i.wpMediaId));
-        state.imagePool = [...newItems, ...state.imagePool];
+
+      const qLower = query.toLowerCase();
+
+      // 1. Identify all stored images in state.imagePool matching the query text
+      const matchedInPool = state.imagePool.filter(img => {
+        const text = `${img.title || ''} ${img.filename || ''} ${(img.tags || []).join(' ')}`.toLowerCase();
+        return text.includes(qLower);
+      });
+      const matchedIds = new Set(matchedInPool.map(i => i.id));
+      const nonMatchedInPool = state.imagePool.filter(img => !matchedIds.has(img.id));
+
+      // 2. Identify newly fetched items from WP API
+      const existingWpIds = new Set(state.imagePool.map(i => String(i.wpMediaId)));
+      const newItems = wpItems.filter(i => !existingWpIds.has(String(i.wpMediaId)));
+
+      if (newItems.length > 0 || matchedInPool.length > 0) {
+        // Promote NEW items AND previously stored matching items to the VERY TOP of the image pool!
+        state.imagePool = [...newItems, ...matchedInPool, ...nonMatchedInPool];
         saveState();
         renderMediaPool();
-        showToast(`Found ${wpItems.length} matching media assets in WordPress!`, "success");
+        const totalTop = newItems.length + matchedInPool.length;
+        showToast(`Moved ${totalTop} image(s) matching "${query}" to the top!`, "success");
       } else {
         showToast(`No WordPress media found matching "${query}".`, "warning");
       }
