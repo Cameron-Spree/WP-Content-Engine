@@ -5,9 +5,9 @@
  */
 
 import { recordApiLog } from "./debugLogger.js";
+import { compressImageIfNeeded } from "./imageCompressor.js";
 
 function getProxyEndpoint() {
-  // Use relative path /api/wp-proxy on Vercel deployment
   return "/api/wp-proxy";
 }
 
@@ -17,15 +17,18 @@ export async function uploadImageToWordPress(file, settings) {
     return { success: false, error: "Missing WordPress credentials in Settings" };
   }
 
+  // Auto-compress large images (>3.5MB) for fast web upload
+  const uploadFile = await compressImageIfNeeded(file, 3.5);
+
   const wpDomain = (settings.domain || "https://briantsofrisborough.co.uk").replace(/\/$/, "");
   const cleanAppPass = settings.wpAppPassword.replace(/\s+/g, "");
   const authHeader = "Basic " + btoa(`${settings.wpUsername}:${cleanAppPass}`);
   const proxyUrl = getProxyEndpoint();
 
   try {
-    recordApiLog("WP_UPLOAD_ATTEMPT", "PENDING", `Relaying ${file.name} (${file.size} bytes) via Vercel Proxy to ${wpDomain}`);
+    recordApiLog("WP_UPLOAD_ATTEMPT", "PENDING", `Relaying ${uploadFile.name} (${uploadFile.size} bytes) via Vercel Proxy to ${wpDomain}`);
     
-    const fileBuffer = await file.arrayBuffer();
+    const fileBuffer = await uploadFile.arrayBuffer();
 
     const response = await fetch(proxyUrl, {
       method: "POST",
