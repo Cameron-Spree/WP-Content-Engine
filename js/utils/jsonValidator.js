@@ -200,6 +200,17 @@ function enrichWidgetHtmlStyles(html) {
     return `<h4 style='color: #095f36; font-size: 16px; font-weight: 700; margin: 0 0 12px 0; font-family: "Poppins", "Libre Franklin", sans-serif;'>💡 Want to Know More? Recommended Reading</h4>`;
   });
 
+  // Enrich all <img> tags with uniform responsive wide view box inline styles
+  clean = clean.replace(/<img\s+([^>]*src=['"][^'"]+['"][^>]*)>/gi, (match, innerAttrs) => {
+    if (innerAttrs.includes("style=")) {
+      return match.replace(/style=['"]([^'"]*)['"]/i, (m, s) => {
+        if (s.includes("max-height")) return m;
+        return `style="${s}; width:100%; max-width:100%; height:auto; max-height:480px; object-fit:cover; border-radius:8px; display:block; margin:0 auto; box-shadow:0 4px 16px rgba(0,0,0,0.15);"`;
+      });
+    }
+    return `<img ${innerAttrs} style="width:100%; max-width:100%; height:auto; max-height:480px; object-fit:cover; border-radius:8px; display:block; margin:0 auto; box-shadow:0 4px 16px rgba(0,0,0,0.15);" />`;
+  });
+
   return clean;
 }
 
