@@ -9,7 +9,7 @@ import { parseAndValidateJSON } from "./utils/jsonValidator.js";
 import { autoMatchPostMedia, replaceImagePlaceholdersInHtml, buildWpUploadUrl, slugifyFilename } from "./utils/mediaMatcher.js";
 import { calculateBatchSchedule, parseFormattedDateToInput, formatInputToFormattedDate } from "./utils/scheduler.js";
 import { generateWXRXML } from "./utils/xmlGenerator.js";
-import { uploadImageToWordPress } from "./utils/wpApiSync.js";
+import { uploadImageToWordPress, updateWordPressMediaDetails } from "./utils/wpApiSync.js";
 
 // Storage Key
 const STORAGE_KEY = "wp_content_engine_state_v3";
@@ -659,7 +659,7 @@ function openImageEdit(imageId) {
   openModal("modal-edit-image");
 }
 
-function saveImageEdit() {
+async function saveImageEdit() {
   const imageId = document.getElementById("edit-image-id").value;
   const img = state.imagePool.find(i => i.id === imageId);
   if (!img) return;
@@ -670,12 +670,21 @@ function saveImageEdit() {
   img.tags = document.getElementById("edit-image-tags").value.split(",").map(t => t.trim().toLowerCase()).filter(Boolean);
   img.url = document.getElementById("edit-image-url").value.trim() || buildWpUploadUrl(img.filename, state.settings);
 
+  // If image was uploaded to WordPress REST API, update live WP Title & Alt Text too!
+  if (img.wpMediaId && state.settings.wpUsername && state.settings.wpAppPassword) {
+    showToast(`Syncing title & alt text to WordPress Media #${img.wpMediaId}...`, "info");
+    const wpRes = await updateWordPressMediaDetails(img.wpMediaId, { title: img.title }, state.settings);
+    if (wpRes && wpRes.success) {
+      showToast(`Updated live in WordPress Media Library! (#${img.wpMediaId})`, "success");
+    }
+  }
+
   state.posts = state.posts.map(p => autoMatchPostMedia(p, state.imagePool, state.settings));
 
   saveState();
   renderAll();
   closeModal();
-  showToast("Image details & filename updated!", "success");
+  showToast("Image details, filename & keyword tags updated!", "success");
 }
 
 function deleteImageFromPool(imageId) {
