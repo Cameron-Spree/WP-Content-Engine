@@ -1086,14 +1086,15 @@ function renderQueuePosts() {
   }
 
   container.innerHTML = state.posts.map((post, idx) => {
-    const featuredImgUrl = post.featured_image ? (post.featured_image.previewUrl || post.featured_image.url) : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect width='150' height='150' fill='%231a1a1a'/%3E%3Ctext x='75' y='80' text-anchor='middle' fill='%23666' font-size='12' font-family='sans-serif'%3ENo Image%3C/text%3E%3C/svg%3E";
+    const rawFeaturedUrl = post.featured_image ? getSafeImageDisplayUrl(post.featured_image) : "";
+    const featuredImgUrl = rawFeaturedUrl || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect width='150' height='150' fill='%231a1a1a'/%3E%3Ctext x='75' y='80' text-anchor='middle' fill='%23666' font-size='12' font-family='sans-serif'%3ENo Image%3C/text%3E%3C/svg%3E";
     const statusBadgeClass = post.status === "future" ? "badge-warning" : "badge-success";
     const statusLabel = post.status === "future" ? "Scheduled" : "Publish";
 
     return `
     <div class="post-queue-card" data-post-id="${post.id}">
       <div class="queue-card-left">
-        <img src="${escapeHtml(featuredImgUrl)}" alt="${escapeHtml(post.title)}" class="queue-post-thumb" onerror="this.onerror=null;this.src='data:image/svg+xml,%253Csvg xmlns=%2527http://www.w3.org/2000/svg%2527 width=%2527150%2527 height=%2527150%2527%253E%253Crect width=%2527150%2527 height=%2527150%2527 fill=%2527%25231a1a1a%2527/%253E%253Ctext x=%252775%2527 y=%252780%2527 text-anchor=%2527middle%2527 fill=%2527%2523666%2527 font-size=%252712%2527%253ENo Image%253C/text%253E%253C/svg%253E'" />
+        <img src="${escapeHtml(featuredImgUrl)}" alt="${escapeHtml(post.title)}" class="queue-post-thumb" onerror="recordImageError('${post.id}', '${escapeHtml(featuredImgUrl)}');this.onerror=null;this.src='data:image/svg+xml,%253Csvg xmlns=%2527http://www.w3.org/2000/svg%2527 width=%2527150%2527 height=%2527150%2527%253E%253Crect width=%2527150%2527 height=%2527150%2527 fill=%2527%25231a1a1a%2527/%253E%253Ctext x=%252775%2527 y=%252780%2527 text-anchor=%2527middle%2527 fill=%2527%2523666%2527 font-size=%252712%2527%253ENo Image%253C/text%253E%253C/svg%253E'" />
         <div class="queue-post-info">
           <h4>#${idx + 1}. ${escapeHtml(post.title)}</h4>
           <div class="queue-post-slug">${state.settings.domain}${state.settings.blogSubpath}${escapeHtml(post.slug)}</div>
@@ -1330,8 +1331,8 @@ function openPostPreview(postId) {
 
   const featBox = document.getElementById("preview-featured-box");
   if (post.featured_image) {
-    const src = post.featured_image.previewUrl || post.featured_image.url;
-    featBox.innerHTML = `<img src="${escapeHtml(src)}" alt="${escapeHtml(post.title)}" />`;
+    const src = getSafeImageDisplayUrl(post.featured_image);
+    featBox.innerHTML = `<img src="${escapeHtml(src)}" alt="${escapeHtml(post.title)}" onerror="recordImageError('${post.id}', '${escapeHtml(src)}');" />`;
   } else {
     featBox.innerHTML = "";
   }
@@ -1585,17 +1586,20 @@ function renderDebugConsole() {
 
   const imgsEl = document.getElementById("debug-images-box");
   if (imgsEl) {
-    if (!report.imagePoolInspectorSamples || report.imagePoolInspectorSamples.length === 0) {
-      imgsEl.innerHTML = `<span style="color: var(--text-muted);">No media pool images loaded in memory.</span>`;
-    } else {
-      imgsEl.innerHTML = report.imagePoolInspectorSamples.map(img => `
+    let html = "";
+    if (report.postQueueInspectorSamples && report.postQueueInspectorSamples.length > 0) {
+      html += `<div style="font-weight:700; color:var(--accent-gold-dark); margin-bottom:4px;">Post Queue Featured Images (${report.postsCount} Total Posts):</div>`;
+      html += report.postQueueInspectorSamples.map(p => `
         <div style="margin-bottom:6px; padding-bottom:4px; border-bottom: 1px dashed rgba(255,255,255,0.1);">
-          <strong style="color: var(--accent-gold-dark);">[${escapeHtml(img.id)}] ${escapeHtml(img.title)}</strong>
-          <div style="font-size:10px; color: var(--text-muted); overflow-x: auto;">URL: ${escapeHtml(img.url)}</div>
-          <div style="font-size:10px; color: var(--text-dim); overflow-x: auto;">PreviewUrl: ${escapeHtml(img.previewUrl || 'NONE')}</div>
+          <strong>[Post #${escapeHtml(p.id)}] ${escapeHtml(p.title)}</strong>
+          <div style="font-size:10px; color:${p.hasFeaturedImage ? '#10b981' : '#ef4444'};">Featured Image: ${escapeHtml(p.featuredImageTitle)} (${p.hasFeaturedImage ? 'ATTACHED' : 'NONE'})</div>
+          <div style="font-size:10px; color: var(--text-muted); overflow-x: auto;">URL: ${escapeHtml(p.featuredImageUrl)}</div>
         </div>
       `).join("");
+    } else {
+      html += `<div style="color:var(--text-muted);">No posts in queue to inspect.</div>`;
     }
+    imgsEl.innerHTML = html;
   }
 
   const slowEl = document.getElementById("debug-slow-resources-box");

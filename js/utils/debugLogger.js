@@ -61,7 +61,6 @@ window.addEventListener("unhandledrejection", (event) => {
   logs.push(errObj);
 });
 
-// Intercept console.warn and console.error
 const origError = console.error;
 console.error = function(...args) {
   errors.push({
@@ -86,7 +85,6 @@ export function getDiagnosticReport(state) {
   const perfEntries = (performance && performance.getEntriesByType) ? performance.getEntriesByType("resource") : [];
   const navigationEntry = (performance && performance.getEntriesByType) ? performance.getEntriesByType("navigation")[0] : null;
 
-  // Calculate localStorage usage
   let storageBytes = 0;
   try {
     for (let key in localStorage) {
@@ -105,6 +103,14 @@ export function getDiagnosticReport(state) {
     url: img.url,
     previewUrl: img.previewUrl,
     hasFileData: Boolean(img.fileData)
+  })) : [];
+
+  const postQueueSamples = (state && state.posts) ? state.posts.slice(0, 5).map(p => ({
+    id: p.id,
+    title: p.title,
+    hasFeaturedImage: Boolean(p.featured_image),
+    featuredImageTitle: p.featured_image ? p.featured_image.title : "None",
+    featuredImageUrl: p.featured_image ? (p.featured_image.previewUrl || p.featured_image.url) : "None"
   })) : [];
 
   const slowResources = perfEntries
@@ -130,6 +136,7 @@ export function getDiagnosticReport(state) {
     postsCount: state ? (state.posts || []).length : 0,
     mediaPoolCount: state ? (state.imagePool || []).length : 0,
     imagePoolInspectorSamples: imagePoolSamples,
+    postQueueInspectorSamples: postQueueSamples,
     imageRenderErrorLogs: imgErrorLogs,
     wpApiConfigured: Boolean(state && state.settings && state.settings.wpUsername && state.settings.wpAppPassword),
     wordpressApiActivityLogs: apiLogs,
