@@ -178,29 +178,26 @@ function enrichWidgetHtmlStyles(html) {
   if (!html) return "";
   let clean = html;
 
-  // Enrich Category Spotlight CTA Banner with inline CSS
-  clean = clean.replace(/<div\s+class=['"]category-spotlight-box['"]([^>]*)>/gi, (match, attrs) => {
-    if (attrs.includes("style=")) return match;
-    return `<div class='category-spotlight-box' style='background: linear-gradient(135deg, #1c1917 0%, #0c0a09 100%); border: 2px solid #eab308; border-radius: 12px; padding: 28px 24px; margin: 36px 0; text-align: center; color: #ffffff;'>`;
+  // Enrich Category Spotlight CTA Banner with Briants Forest Green (#095f36) inline CSS
+  clean = clean.replace(/<div\s+class=['"]category-spotlight-box['"]([^>]*)>/gi, (match) => {
+    return `<div class='category-spotlight-box' style='background: #f0fdf4; border: 2px solid #095f36; border-radius: 12px; padding: 28px 24px; margin: 36px 0; text-align: center; color: #111827; box-shadow: 0 4px 16px rgba(9, 95, 54, 0.15);'>`;
   });
 
   clean = clean.replace(/<h3([^>]*)>\s*Explore STIHL Range at Briants of Risborough\s*<\/h3>/gi, (match) => {
-    return `<h3 style='color: #eab308; font-size: 22px; font-weight: 700; margin: 0 0 10px 0; font-family: sans-serif;'>Explore STIHL Range at Briants of Risborough</h3>`;
+    return `<h3 style='color: #095f36; font-size: 22px; font-weight: 700; margin: 0 0 10px 0; font-family: "Poppins", "Libre Franklin", sans-serif;'>Explore STIHL Range at Briants of Risborough</h3>`;
   });
 
-  clean = clean.replace(/<a\s+href=['"]([^'"]+)['"]\s+class=['"]spotlight-btn['"]([^>]*)>/gi, (match, url, attrs) => {
-    if (attrs.includes("style=")) return match;
-    return `<a href='${url}' class='spotlight-btn' style='display: inline-block; background: #eab308; color: #000000; font-weight: 700; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-family: sans-serif; box-shadow: 0 4px 12px rgba(234,179,8,0.3);'>`;
+  clean = clean.replace(/<a\s+href=['"]([^'"]+)['"]\s+class=['"]spotlight-btn['"]([^>]*)>/gi, (match, url) => {
+    return `<a href='${url}' class='spotlight-btn' style='display: inline-block; background: #095f36; color: #ffffff; font-weight: 700; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px; font-family: "Poppins", sans-serif; box-shadow: 0 4px 12px rgba(9, 95, 54, 0.3);'>`;
   });
 
-  // Enrich Want to Know More Callout Box with inline CSS
-  clean = clean.replace(/<div\s+class=['"]callout-box want-to-know-more['"]([^>]*)>/gi, (match, attrs) => {
-    if (attrs.includes("style=")) return match;
-    return `<div class='callout-box want-to-know-more' style='background: rgba(234, 179, 8, 0.08); border-left: 4px solid #eab308; border-radius: 8px; padding: 20px 24px; margin: 32px 0;'>`;
+  // Enrich Want to Know More Callout Box with Briants Forest Green (#095f36) inline CSS
+  clean = clean.replace(/<div\s+class=['"]callout-box want-to-know-more['"]([^>]*)>/gi, (match) => {
+    return `<div class='callout-box want-to-know-more' style='background: #f0fdf4; border-left: 5px solid #095f36; border-radius: 8px; padding: 20px 24px; margin: 32px 0;'>`;
   });
 
   clean = clean.replace(/<h4([^>]*)>\s*💡 Want to Know More\? Recommended Reading\s*<\/h4>/gi, (match) => {
-    return `<h4 style='color: #eab308; font-size: 16px; font-weight: 700; margin: 0 0 12px 0; font-family: sans-serif;'>💡 Want to Know More? Recommended Reading</h4>`;
+    return `<h4 style='color: #095f36; font-size: 16px; font-weight: 700; margin: 0 0 12px 0; font-family: "Poppins", "Libre Franklin", sans-serif;'>💡 Want to Know More? Recommended Reading</h4>`;
   });
 
   return clean;

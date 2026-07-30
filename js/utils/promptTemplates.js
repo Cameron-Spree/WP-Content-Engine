@@ -43,14 +43,14 @@ export function generateAIPrompt(params) {
     ? `\n### Master Internal Links Bank:\nSeamlessly hyperlink appropriate anchor phrases in your text to these URLs. MANDATORY RULE: Use single quotes for href attributes, e.g. <a href='https://...'>Anchor Phrase</a>.\n${allInternalTargets.join("\n")}\n`
     : "";
 
-  // Widget Instructions
+  // Widget Instructions with Authentic Briants Forest Green (#095f36) Styling
   const widgetRules = [];
   if (widgets.wantToKnowMore) {
-    widgetRules.push(`- WANT TO KNOW MORE CALLOUT: At the end of the post, include an HTML callout box formatted EXACTLY as:\n<div class='callout-box want-to-know-more' style='background: rgba(234, 179, 8, 0.08); border-left: 4px solid #eab308; border-radius: 8px; padding: 20px 24px; margin: 32px 0;'>\n  <h4 style='color: #eab308; font-size: 16px; font-weight: 700; margin: 0 0 12px 0;'>💡 Want to Know More? Recommended Reading</h4>\n  <ul style='margin: 0; padding-left: 20px;'>\n    <li><a href='[Exact URL 1 from Bank]'>[Exact Anchor Title 1]</a></li>\n    <li><a href='[Exact URL 2 from Bank]'>[Exact Anchor Title 2]</a></li>\n  </ul>\n</div>`);
+    widgetRules.push(`- WANT TO KNOW MORE CALLOUT: At the end of the post, include an HTML callout box formatted EXACTLY as:\n<div class='callout-box want-to-know-more' style='background: #f0fdf4; border-left: 5px solid #095f36; border-radius: 8px; padding: 20px 24px; margin: 32px 0;'>\n  <h4 style='color: #095f36; font-size: 16px; font-weight: 700; margin: 0 0 12px 0;'>💡 Want to Know More? Recommended Reading</h4>\n  <ul style='margin: 0; padding-left: 20px;'>\n    <li><a href='[Exact URL 1 from Bank]'>[Exact Anchor Title 1]</a></li>\n    <li><a href='[Exact URL 2 from Bank]'>[Exact Anchor Title 2]</a></li>\n  </ul>\n</div>`);
   }
 
   if (widgets.categorySpotlight) {
-    widgetRules.push(`- CATEGORY SPOTLIGHT BANNER: Include a CTA banner card formatted EXACTLY as:\n<div class='category-spotlight-box' style='background: linear-gradient(135deg, #1c1917 0%, #0c0a09 100%); border: 2px solid #eab308; border-radius: 12px; padding: 28px 24px; margin: 36px 0; text-align: center; color: #ffffff;'>\n  <h3 style='color: #eab308; font-size: 22px; font-weight: 700; margin: 0 0 10px 0;'>Explore STIHL Range at Briants of Risborough</h3>\n  <p style='color: #d1d5db; font-size: 14px; margin: 0 0 20px 0; line-height: 1.6;'>Discover our full range of domestic & professional garden machinery with local workshop service.</p>\n  <a href='${siteDomain}/product-category/brand/stihl/' class='spotlight-btn' style='display: inline-block; background: #eab308; color: #000000; font-weight: 700; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px;'>Shop STIHL Range &rarr;</a>\n</div>`);
+    widgetRules.push(`- CATEGORY SPOTLIGHT BANNER: Include a CTA banner card formatted EXACTLY as:\n<div class='category-spotlight-box' style='background: #f0fdf4; border: 2px solid #095f36; border-radius: 12px; padding: 28px 24px; margin: 36px 0; text-align: center; color: #111827; box-shadow: 0 4px 16px rgba(9, 95, 54, 0.18);'>\n  <h3 style='color: #095f36; font-size: 22px; font-weight: 700; margin: 0 0 10px 0;'>Explore STIHL Range at Briants of Risborough</h3>\n  <p style='color: #374151; font-size: 14px; margin: 0 0 20px 0; line-height: 1.6;'>Discover our full range of domestic & professional garden machinery with local workshop service.</p>\n  <a href='${siteDomain}/product-category/brand/stihl/' class='spotlight-btn' style='display: inline-block; background: #095f36; color: #ffffff; font-weight: 700; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px;'>Shop STIHL Range &rarr;</a>\n</div>`);
   }
 
   if (widgets.table) {
@@ -78,116 +78,22 @@ STRICT HTML RULES FOR content_html:
 ---
 ### Blog Specifications:
 - Topic / Title: "${topic}"
-- Target Keywords: ${keywords}
-- Site Niche / Domain: ${niche}
-- Brand Tone: ${tone}
+- Focus Keywords: ${keywords}
+- Niche & Business Context: ${niche}
+- Tone of Voice: ${tone}
 - Target Word Count: ${wordCount}
-- Image Rule: ${inlineImagesRule}
+- Inline Body Images Rule: ${inlineImagesRule}
 ${urlSection}${widgetSection}
 ---
-### Required JSON Format (Wrap in \`\`\`json):
-\`\`\`json
+### Output Schema (STRICT JSON ONLY):
+Return ONLY a valid JSON object matching this schema:
 {
-  "title": "Full Catchy Post Title",
-  "slug": "url-friendly-slug-with-hyphens",
+  "title": "SEO Optimized Article Title",
+  "slug": "url-friendly-slug",
   "categories": ["Garden Machinery", "STIHL"],
-  "tags": ["stihl garden machinery", "chainsaw maintenance"],
-  "yoast_meta_title": "SEO Title (strictly max 60 characters)",
-  "yoast_meta_desc": "SEO description with keyword (strictly max 155 characters)",
-  "content_html": "<p>Intro paragraph with <a href='${siteDomain}/product-category/garden-machinery/'>Garden Machinery Range</a>...</p><h2>Selecting Equipment</h2><p>Paragraph text...</p><div class='callout-box want-to-know-more'><h4>💡 Want to Know More? Recommended Reading</h4><ul><li><a href='${siteDomain}/product-category/garden-machinery/chainsaws/'>STIHL Chainsaws Range</a></li></ul></div>"
-}
-\`\`\`
-
-Respond with the \`\`\`json block now:`;
-}
-
-/**
- * Generate Bulk Cluster Prompts (for rapid 5-10 article cluster generation)
- */
-export function generateBulkClusterPrompts(params) {
-  const {
-    clusterTopic = "STIHL Garden Machinery & Power Tools",
-    questions = [],
-    niche = "Briants of Risborough - Garden Machinery & Tools",
-    tone = "Authoritative, practical, & expert guidance",
-    wordCount = "800-1200 words",
-    linksBank = [],
-    siteDomain = "https://briantsofrisborough.co.uk",
-    blogSubpath = "/blog/"
-  } = params;
-
-  if (!questions || questions.length === 0) return [];
-
-  // Build cluster URLs mapping so prompts cross-link all articles in the cluster
-  const clusterLinks = questions.map(q => {
-    const slug = String(q).toLowerCase().replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-");
-    const fullUrl = `${siteDomain.replace(/\/$/, "")}${blogSubpath}${slug}`;
-    return { title: q.trim(), url: fullUrl };
-  });
-
-  return questions.map((q, idx) => {
-    const otherClusterArticles = clusterLinks
-      .filter((_, i) => i !== idx)
-      .map(c => `- ${c.url} (Cluster Article: "${c.title}")`);
-
-    const masterLinks = linksBank.map(item => {
-      if (item.url && item.label) return `- ${item.url} (Anchor Text: "${item.label}")`;
-      return `- ${item}`;
-    });
-
-    const allLinksText = [...masterLinks, ...otherClusterArticles].join("\n");
-
-    const promptText = `SYSTEM INSTRUCTION: Act as an expert SEO Copywriter for Briants of Risborough (${siteDomain}). Write Cluster Article #${idx + 1} of ${questions.length} in the "${clusterTopic}" cluster.
-
-CRITICAL FORMATTING REQUIREMENT: Wrap your entire JSON output inside a markdown \`\`\`json ... \`\`\` code block.
-
-STRICT HTML RULES FOR content_html:
-1. EVERY paragraph MUST be wrapped in separate <p>...</p> tags.
-2. EVERY section heading MUST be wrapped in <h2>Heading Title</h2> or <h3>Heading Title</h3>.
-3. EVERY link MUST be closed properly: <a href='https://...'>Anchor Phrase</a>.
-4. ALWAYS use single quotes for HTML attributes inside content_html.
-
----
-### Article Specifications:
-- Article Title / Question: "${q.trim()}"
-- Cluster Topic: "${clusterTopic}"
-- Site Niche / Domain: ${niche}
-- Brand Tone: ${tone}
-- Target Word Count: ${wordCount}
-
-### Target Internal Links (Contextual Cross-Linking Mandate):
-${allLinksText}
-
-### Mandatory HTML Callout Widget:
-At the end of the post, include an HTML callout box formatted EXACTLY as:
-<div class='callout-box want-to-know-more'>
-  <h4>💡 Want to Know More? Recommended Reading</h4>
-  <ul>
-    <li><a href='[Internal Link URL 1]'>[Anchor Title 1]</a></li>
-    <li><a href='[Internal Link URL 2]'>[Anchor Title 2]</a></li>
-  </ul>
-</div>
-
----
-### Required JSON Format (Wrap in \`\`\`json):
-\`\`\`json
-{
-  "title": "${q.trim().replace(/"/g, '\\"')}",
-  "slug": "${clusterLinks[idx].url.split('/').pop()}",
-  "categories": ["Garden Machinery", "STIHL"],
-  "tags": ["stihl", "garden machinery", "briants of risborough"],
-  "yoast_meta_title": "${q.trim().substring(0, 50)} | Briants of Risborough",
-  "yoast_meta_desc": "Discover expert advice on ${q.trim().toLowerCase()} from Briants of Risborough.",
-  "content_html": "<p>Content HTML wrapped in <p> and <h2> tags...</p><div class='callout-box want-to-know-more'>...</div>"
-}
-\`\`\`
-
-Respond with the \`\`\`json block now:`;
-
-    return {
-      index: idx + 1,
-      title: q.trim(),
-      prompt: promptText
-    };
-  });
+  "tags": ["stihl chainsaw", "buying guide"],
+  "yoast_meta_title": "Meta Title under 60 chars",
+  "yoast_meta_desc": "Engaging meta description under 155 chars with focus keyword",
+  "content_html": "Full article HTML with <p>, <h2>, <h3>, <table>, hyperlinks, and widgets..."
+}`;
 }
