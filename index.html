@@ -30,7 +30,7 @@
           <div class="logo-icon"><i data-lucide="landmark"></i></div>
           <div class="brand-text">
             <h1>WP Content Engine</h1>
-            <span class="version-badge" id="app-version-tag">v7.3.0 • Build 12:42</span>
+            <span class="version-badge" id="app-version-tag">v7.4.0 • Build 12:46</span>
           </div>
         </div>
       </div>
@@ -384,8 +384,13 @@ How to Sharpen a STIHL Chainsaw Chain at Home</textarea>
               </div>
             </div>
 
-            <!-- In-Panel Live WordPress Media Search Bar -->
+            <!-- In-Panel Live WordPress Media Search Bar & Title Keyword Pills -->
             <div style="margin-bottom: 14px;">
+              <div id="ingest-title-keywords-wrapper" style="margin-bottom: 10px; display:none; background: rgba(0,0,0,0.3); padding: 8px 10px; border-radius: 6px; border: 1px dashed var(--border-gold-subtle);">
+                <div style="font-size: 11px; color: var(--accent-gold-dark); font-family: var(--font-mono); margin-bottom: 6px;">💡 Click Title Keyword to Search 7,000+ WP Library:</div>
+                <div id="ingest-title-keywords-pills" style="display:flex; flex-wrap:wrap; gap: 6px;"></div>
+              </div>
+
               <div style="display:flex; gap: 8px;">
                 <input type="text" id="ingest-media-search-input" class="form-input" placeholder="Search 7,000+ WP assets by keyword (e.g. stihl, chainsaw, lawnmower)...">
                 <button class="btn btn-primary btn-sm" id="btn-ingest-search-wp" style="white-space:nowrap;">

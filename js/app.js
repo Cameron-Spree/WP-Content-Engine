@@ -714,10 +714,16 @@ async function autoSuggestMediaForCurrentJson(userTriggered = false) {
     return;
   }
 
-  // Extract smart product keywords (e.g. strimmers, lawnmower, chainsaw)
+  // Extract smart title nouns in natural word order
   const keywords = extractSmartMediaKeywords(blogTitle);
 
-  if (keywords.length === 0) return;
+  if (keywords.length === 0) {
+    renderTitleKeywordPills([]);
+    return;
+  }
+
+  // Render interactive keyword pills above search bar for 1-click searching!
+  renderTitleKeywordPills(keywords);
 
   const primaryKeyword = keywords[0];
   if (userTriggered) {
@@ -738,11 +744,41 @@ async function autoSuggestMediaForCurrentJson(userTriggered = false) {
     updateIngestFeaturedBanner(wpItems[0].title);
     renderMediaPool();
     if (userTriggered) {
-      showToast(`Auto-matched ${wpItems.length} WordPress media assets! Set featured cover to "${wpItems[0].title}".`, "success");
+      showToast(`Auto-matched ${wpItems.length} WordPress media assets for "${primaryKeyword}"! Set featured cover to "${wpItems[0].title}".`, "success");
     }
   } else if (userTriggered) {
-    showToast(`No WordPress media found for title keyword "${primaryKeyword}".`, "warning");
+    showToast(`No WordPress media found for "${primaryKeyword}". Try clicking another keyword pill above!`, "warning");
   }
+}
+
+function renderTitleKeywordPills(keywords) {
+  const container = document.getElementById("ingest-title-keywords-pills");
+  const wrapper = document.getElementById("ingest-title-keywords-wrapper");
+  if (!container || !wrapper) return;
+
+  if (!keywords || keywords.length === 0) {
+    wrapper.style.display = "none";
+    return;
+  }
+
+  wrapper.style.display = "block";
+  container.innerHTML = keywords.map(kw => `
+    <button class="btn btn-outline btn-sm btn-title-kw-pill" data-kw="${escapeHtml(kw)}" style="font-size:11px; padding:3px 10px; font-family:var(--font-mono); color: var(--accent-gold-dark); border-color: rgba(234,179,8,0.4);">
+      <i data-lucide="search"></i> ${escapeHtml(kw)}
+    </button>
+  `).join("");
+
+  document.querySelectorAll(".btn-title-kw-pill").forEach(btn => {
+    btn.onclick = () => {
+      const kw = btn.getAttribute("data-kw");
+      const searchInput = document.getElementById("ingest-media-search-input");
+      if (searchInput) searchInput.value = kw;
+      const searchBtn = document.getElementById("btn-ingest-search-wp");
+      if (searchBtn) searchBtn.click();
+    };
+  });
+
+  refreshLucideIcons();
 }
 
 function updateIngestFeaturedBanner(title) {

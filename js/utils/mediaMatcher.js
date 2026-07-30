@@ -40,11 +40,8 @@ export function extractSmartMediaKeywords(titleText) {
   const cleanText = titleText.toLowerCase().replace(/[^\w\s]/g, " ");
   const words = cleanText.split(/\s+/).filter(w => w.length > 2);
 
-  // Filter out all non-noun verbs, adjectives, and filler words
+  // Filter out non-noun verbs, adjectives, and filler words while preserving natural title word order
   const extractedNouns = words.filter(w => !NON_NOUNS.has(w));
-
-  // Sort extracted nouns by length (longer nouns e.g. "strimmers", "headphones", "lawnmowers" are usually primary subject nouns)
-  extractedNouns.sort((a, b) => b.length - a.length);
 
   return Array.from(new Set(extractedNouns));
 }
