@@ -12,24 +12,33 @@ export async function uploadImageToWordPress(file, settings) {
   }
 
   const domain = (settings.domain || "https://briantsofrisborough.co.uk").replace(/\/$/, "");
-  const endpoint = `${domain}/wp-json/wp/v2/media`;
+  const targetUrl = `${domain}/wp-json/wp/v2/media`;
 
   const cleanAppPass = settings.wpAppPassword.replace(/\s+/g, "");
   const authHeader = "Basic " + btoa(`${settings.wpUsername}:${cleanAppPass}`);
 
-  // Method 1: Try standard WP REST API raw binary upload with Content-Disposition
-  try {
-    recordApiLog("WP_UPLOAD_ATTEMPT", "PENDING", `Posting ${file.name} (${file.size} bytes) to ${endpoint}`);
+  // Helper function to perform fetch with optional CORS proxy wrapper
+  const doFetch = async (url, useProxy = false) => {
+    const finalUrl = useProxy ? `https://corsproxy.io/?${encodeURIComponent(url)}` : url;
+    
+    // Convert file to ArrayBuffer for reliable binary transfer across CORS proxies
+    const fileBuffer = await file.arrayBuffer();
 
-    const response = await fetch(endpoint, {
+    return await fetch(finalUrl, {
       method: "POST",
       headers: {
         "Authorization": authHeader,
         "Content-Disposition": `attachment; filename="${file.name}"`,
         "Content-Type": file.type || "image/jpeg"
       },
-      body: file
+      body: fileBuffer
     });
+  };
+
+  // Attempt 1: Direct Request
+  try {
+    recordApiLog("WP_UPLOAD_ATTEMPT", "PENDING", `Posting ${file.name} (${file.size} bytes) to ${targetUrl}`);
+    const response = await doFetch(targetUrl, false);
 
     if (response.ok) {
       const data = await response.json();
@@ -43,50 +52,50 @@ export async function uploadImageToWordPress(file, settings) {
       };
     }
 
-    // If Method 1 fails, parse error response
     const errText = await response.text();
     recordApiLog("WP_UPLOAD_ERROR", `HTTP ${response.status}`, errText);
-
-    // Fallback Method 2: Try FormData upload
-    const formData = new FormData();
-    formData.append("file", file, file.name);
-
-    const res2 = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Authorization": authHeader
-      },
-      body: formData
-    });
-
-    if (res2.ok) {
-      const data2 = await res2.json();
-      recordApiLog("WP_UPLOAD_SUCCESS_FORM", "201 OK", `Uploaded ID #${data2.id} -> ${data2.source_url}`);
-      return {
-        success: true,
-        wpMediaId: data2.id,
-        url: data2.source_url,
-        filename: data2.slug ? `${data2.slug}.${file.name.split('.').pop()}` : file.name,
-        link: data2.link
-      };
-    }
-
-    const errText2 = await res2.text();
-    recordApiLog("WP_UPLOAD_FORM_ERROR", `HTTP ${res2.status}`, errText2);
-
     return {
       success: false,
       status: response.status,
       error: `WP HTTP ${response.status}: ${errText.substring(0, 120)}`
     };
 
-  } catch (err) {
-    console.error("Failed to connect to WordPress REST API:", err);
-    recordApiLog("WP_UPLOAD_EXCEPTION", "NETWORK_ERROR / CORS", err.message);
-    return {
-      success: false,
-      error: `Network / CORS Error: ${err.message}. Check if your site allows cross-origin requests.`
-    };
+  } catch (directErr) {
+    console.warn("Direct CORS fetch failed, attempting automatic CORS Proxy relay...", directErr);
+    recordApiLog("WP_UPLOAD_CORS_WARN", "CORS_BLOCKED", `Direct fetch blocked: ${directErr.message}. Retrying via CORS Proxy...`);
+
+    // Attempt 2: CORS Proxy Relay
+    try {
+      const response = await doFetch(targetUrl, true);
+
+      if (response.ok) {
+        const data = await response.json();
+        recordApiLog("WP_UPLOAD_PROXY_SUCCESS", "201 OK via CORS Proxy", `Uploaded ID #${data.id} -> ${data.source_url}`);
+        return {
+          success: true,
+          wpMediaId: data.id,
+          url: data.source_url,
+          filename: data.slug ? `${data.slug}.${file.name.split('.').pop()}` : file.name,
+          link: data.link
+        };
+      }
+
+      const errText = await response.text();
+      recordApiLog("WP_UPLOAD_PROXY_ERROR", `HTTP ${response.status}`, errText);
+      return {
+        success: false,
+        status: response.status,
+        error: `WordPress returned HTTP ${response.status}: ${errText.substring(0, 120)}`
+      };
+
+    } catch (proxyErr) {
+      console.error("CORS Proxy attempt failed:", proxyErr);
+      recordApiLog("WP_UPLOAD_EXCEPTION", "NETWORK_ERROR", proxyErr.message);
+      return {
+        success: false,
+        error: `Network Error: ${proxyErr.message}. Please check WordPress REST API CORS headers.`
+      };
+    }
   }
 }
 
@@ -102,24 +111,28 @@ export async function testWordPressApiConnection(settings) {
   }
 
   const domain = (settings.domain || "https://briantsofrisborough.co.uk").replace(/\/$/, "");
-  const testEndpoint = `${domain}/wp-json/wp/v2/users/me`;
+  const targetUrl = `${domain}/wp-json/wp/v2/users/me`;
 
   const cleanAppPass = settings.wpAppPassword.replace(/\s+/g, "");
   const authHeader = "Basic " + btoa(`${settings.wpUsername}:${cleanAppPass}`);
 
-  try {
-    const res = await fetch(testEndpoint, {
+  const testFetch = async (useProxy = false) => {
+    const url = useProxy ? `https://corsproxy.io/?${encodeURIComponent(targetUrl)}` : targetUrl;
+    return await fetch(url, {
       method: "GET",
       headers: {
         "Authorization": authHeader
       }
     });
+  };
 
+  try {
+    const res = await testFetch(false);
     if (res.ok) {
       const user = await res.json();
       return {
         success: true,
-        message: `✓ Connected successfully to WordPress! Logged in as: ${user.name || user.slug} (ID: #${user.id})`
+        message: `✓ Direct Connection Success! Logged into WordPress as: ${user.name || user.slug} (ID: #${user.id})`
       };
     }
 
@@ -127,13 +140,31 @@ export async function testWordPressApiConnection(settings) {
     return {
       success: false,
       status: res.status,
-      message: `✗ WordPress API rejected credentials (HTTP ${res.status}): ${errBody.substring(0, 150)}`
+      message: `✗ WordPress rejected credentials (HTTP ${res.status}): ${errBody.substring(0, 120)}`
     };
-  } catch (err) {
-    return {
-      success: false,
-      message: `✗ Network/CORS Error reaching ${testEndpoint}: ${err.message}`
-    };
+  } catch (directErr) {
+    // Retry with CORS Proxy
+    try {
+      const res = await testFetch(true);
+      if (res.ok) {
+        const user = await res.json();
+        return {
+          success: true,
+          message: `✓ Connected via CORS Proxy Relay! Logged in as: ${user.name || user.slug} (ID: #${user.id})`
+        };
+      }
+      const errBody = await res.text();
+      return {
+        success: false,
+        status: res.status,
+        message: `✗ WP via CORS Proxy HTTP ${res.status}: ${errBody.substring(0, 120)}`
+      };
+    } catch (proxyErr) {
+      return {
+        success: false,
+        message: `✗ Direct & CORS Proxy blocked by browser/server policy: ${proxyErr.message}`
+      };
+    }
   }
 }
 
@@ -146,13 +177,14 @@ export async function updateWordPressMediaDetails(wpMediaId, details, settings) 
   }
 
   const domain = (settings.domain || "https://briantsofrisborough.co.uk").replace(/\/$/, "");
-  const endpoint = `${domain}/wp-json/wp/v2/media/${wpMediaId}`;
+  const targetUrl = `${domain}/wp-json/wp/v2/media/${wpMediaId}`;
 
   const cleanAppPass = settings.wpAppPassword.replace(/\s+/g, "");
   const authHeader = "Basic " + btoa(`${settings.wpUsername}:${cleanAppPass}`);
 
-  try {
-    const response = await fetch(endpoint, {
+  const updateFetch = async (useProxy = false) => {
+    const url = useProxy ? `https://corsproxy.io/?${encodeURIComponent(targetUrl)}` : targetUrl;
+    return await fetch(url, {
       method: "POST",
       headers: {
         "Authorization": authHeader,
@@ -164,6 +196,13 @@ export async function updateWordPressMediaDetails(wpMediaId, details, settings) 
         caption: details.title
       })
     });
+  };
+
+  try {
+    let response = await updateFetch(false);
+    if (!response.ok) {
+      response = await updateFetch(true);
+    }
 
     if (!response.ok) {
       return { success: false, status: response.status };
