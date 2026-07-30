@@ -46,11 +46,11 @@ export function generateAIPrompt(params) {
   // Widget Instructions
   const widgetRules = [];
   if (widgets.wantToKnowMore) {
-    widgetRules.push(`- WANT TO KNOW MORE CALLOUT: At the end of the post, include an HTML callout box formatted EXACTLY as:\n<div class='callout-box want-to-know-more'>\n  <h4>💡 Want to Know More? Recommended Reading</h4>\n  <ul>\n    <li><a href='[Exact URL 1 from Bank]'>[Exact Anchor Title 1]</a></li>\n    <li><a href='[Exact URL 2 from Bank]'>[Exact Anchor Title 2]</a></li>\n  </ul>\n</div>`);
+    widgetRules.push(`- WANT TO KNOW MORE CALLOUT: At the end of the post, include an HTML callout box formatted EXACTLY as:\n<div class='callout-box want-to-know-more' style='background: rgba(234, 179, 8, 0.08); border-left: 4px solid #eab308; border-radius: 8px; padding: 20px 24px; margin: 32px 0;'>\n  <h4 style='color: #eab308; font-size: 16px; font-weight: 700; margin: 0 0 12px 0;'>💡 Want to Know More? Recommended Reading</h4>\n  <ul style='margin: 0; padding-left: 20px;'>\n    <li><a href='[Exact URL 1 from Bank]'>[Exact Anchor Title 1]</a></li>\n    <li><a href='[Exact URL 2 from Bank]'>[Exact Anchor Title 2]</a></li>\n  </ul>\n</div>`);
   }
 
   if (widgets.categorySpotlight) {
-    widgetRules.push(`- CATEGORY SPOTLIGHT BANNER: Include a CTA banner card formatted EXACTLY as:\n<div class='category-spotlight-box'>\n  <h3>Explore STIHL Range at Briants of Risborough</h3>\n  <p>Discover our full range of domestic & professional garden machinery with local workshop service.</p>\n  <a href='${siteDomain}/product-category/brand/stihl/' class='spotlight-btn'>Shop STIHL Range &rarr;</a>\n</div>`);
+    widgetRules.push(`- CATEGORY SPOTLIGHT BANNER: Include a CTA banner card formatted EXACTLY as:\n<div class='category-spotlight-box' style='background: linear-gradient(135deg, #1c1917 0%, #0c0a09 100%); border: 2px solid #eab308; border-radius: 12px; padding: 28px 24px; margin: 36px 0; text-align: center; color: #ffffff;'>\n  <h3 style='color: #eab308; font-size: 22px; font-weight: 700; margin: 0 0 10px 0;'>Explore STIHL Range at Briants of Risborough</h3>\n  <p style='color: #d1d5db; font-size: 14px; margin: 0 0 20px 0; line-height: 1.6;'>Discover our full range of domestic & professional garden machinery with local workshop service.</p>\n  <a href='${siteDomain}/product-category/brand/stihl/' class='spotlight-btn' style='display: inline-block; background: #eab308; color: #000000; font-weight: 700; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-size: 15px;'>Shop STIHL Range &rarr;</a>\n</div>`);
   }
 
   if (widgets.table) {
