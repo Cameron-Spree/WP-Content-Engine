@@ -10,6 +10,7 @@ import { autoMatchPostMedia, replaceImagePlaceholdersInHtml, buildWpUploadUrl, s
 import { calculateBatchSchedule, parseFormattedDateToInput, formatInputToFormattedDate } from "./utils/scheduler.js";
 import { generateWXRXML } from "./utils/xmlGenerator.js";
 import { uploadImageToWordPress, updateWordPressMediaDetails } from "./utils/wpApiSync.js";
+import { getDiagnosticReport } from "./utils/debugLogger.js";
 
 // Storage Key
 const STORAGE_KEY = "wp_content_engine_state_v3";
@@ -1163,6 +1164,29 @@ function saveSiteSettings() {
    ========================================================================== */
 
 function initGlobalHeaderActions() {
+  const btnDebug = document.getElementById("btn-open-debug");
+  if (btnDebug) {
+    btnDebug.addEventListener("click", () => {
+      renderDebugConsole();
+      openModal("modal-debug");
+    });
+  }
+
+  const btnRefreshDebug = document.getElementById("btn-refresh-debug");
+  if (btnRefreshDebug) {
+    btnRefreshDebug.addEventListener("click", renderDebugConsole);
+  }
+
+  const btnCopyDebug = document.getElementById("btn-copy-debug-report");
+  if (btnCopyDebug) {
+    btnCopyDebug.addEventListener("click", () => {
+      const report = getDiagnosticReport(state);
+      navigator.clipboard.writeText(JSON.stringify(report, null, 2)).then(() => {
+        showToast("Full System Diagnostic Report copied to clipboard!", "success");
+      });
+    });
+  }
+
   document.getElementById("btn-open-settings").addEventListener("click", () => {
     openModal("modal-settings");
   });
@@ -1186,6 +1210,43 @@ function initGlobalHeaderActions() {
     switchTab("tab-export");
     triggerXmlDownload();
   });
+}
+
+function renderDebugConsole() {
+  const report = getDiagnosticReport(state);
+
+  const summaryEl = document.getElementById("debug-summary-box");
+  if (summaryEl) {
+    summaryEl.innerHTML = `
+      <div><strong>Status:</strong> ${report.onlineStatus}</div>
+      <div><strong>LocalStorage Usage:</strong> ${report.localStorageUsedMb}</div>
+      <div><strong>DOM Interactive:</strong> ${report.navigationTiming ? report.navigationTiming.domInteractiveMs + 'ms' : 'N/A'}</div>
+      <div><strong>DOM Complete:</strong> ${report.navigationTiming ? report.navigationTiming.domCompleteMs + 'ms' : 'N/A'}</div>
+      <div><strong>Load Event End:</strong> ${report.navigationTiming ? report.navigationTiming.loadEventEndMs + 'ms' : 'N/A'}</div>
+      <div><strong>WP REST API Configured:</strong> ${report.wpApiConfigured ? 'YES' : 'NO'}</div>
+      <div><strong>Total Loaded Network Resources:</strong> ${report.totalResourcesLoaded}</div>
+      <div><strong>Recorded Console Errors:</strong> ${report.recordedErrorsCount}</div>
+    `;
+  }
+
+  const slowEl = document.getElementById("debug-slow-resources-box");
+  if (slowEl) {
+    if (report.slowResources.length === 0) {
+      slowEl.innerHTML = `<span style="color: var(--accent-gold-dark);">✓ No stalled or slow network resources detected (>800ms).</span>`;
+    } else {
+      slowEl.innerHTML = report.slowResources.map(r => `
+        <div style="margin-bottom:6px; padding-bottom:4px; border-bottom: 1px dashed rgba(255,255,255,0.1);">
+          <strong style="color: #ef4444;">[${r.type.toUpperCase()}] ${escapeHtml(r.name)}</strong> — ${r.durationMs}ms (${r.transferBytes} bytes)
+          <div style="font-size:10px; color: var(--text-dim); overflow-x: auto;">${escapeHtml(r.fullUrl)}</div>
+        </div>
+      `).join("");
+    }
+  }
+
+  const outputEl = document.getElementById("debug-log-output");
+  if (outputEl) {
+    outputEl.value = JSON.stringify(report, null, 2);
+  }
 }
 
 function renderAll() {
