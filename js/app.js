@@ -598,7 +598,7 @@ function renderMediaPool() {
     return `
     <div class="media-asset-card" data-img-id="${img.id}">
       <div class="media-asset-img-wrapper">
-        <img src="${escapeHtml(displaySrc)}" alt="${escapeHtml(img.title)}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x200?text=Image+Error'" />
+        <img src="${escapeHtml(displaySrc)}" alt="${escapeHtml(img.title)}" loading="lazy" onerror="this.onerror=null;this.style.display='none';this.parentElement.innerHTML='<div style=\'display:flex;align-items:center;justify-content:center;height:100%;background:rgba(0,0,0,0.3);color:var(--text-muted);font-size:11px;\'>No Preview</div>'" />
       </div>
       <div class="media-asset-details">
         <div class="media-asset-title" title="${escapeHtml(img.title)}">${escapeHtml(img.title)}</div>
@@ -753,14 +753,14 @@ function renderQueuePosts() {
   }
 
   container.innerHTML = state.posts.map((post, idx) => {
-    const featuredImgUrl = post.featured_image ? (post.featured_image.previewUrl || post.featured_image.url) : "https://via.placeholder.com/150?text=No+Image";
+    const featuredImgUrl = post.featured_image ? (post.featured_image.previewUrl || post.featured_image.url) : "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150' viewBox='0 0 150 150'%3E%3Crect width='150' height='150' fill='%231a1a1a'/%3E%3Ctext x='75' y='80' text-anchor='middle' fill='%23666' font-size='12' font-family='sans-serif'%3ENo Image%3C/text%3E%3C/svg%3E";
     const statusBadgeClass = post.status === "future" ? "badge-warning" : "badge-success";
     const statusLabel = post.status === "future" ? "Scheduled" : "Publish";
 
     return `
     <div class="post-queue-card" data-post-id="${post.id}">
       <div class="queue-card-left">
-        <img src="${escapeHtml(featuredImgUrl)}" alt="${escapeHtml(post.title)}" class="queue-post-thumb" onerror="this.src='https://via.placeholder.com/150?text=No+Image'" />
+        <img src="${escapeHtml(featuredImgUrl)}" alt="${escapeHtml(post.title)}" class="queue-post-thumb" onerror="this.onerror=null;this.src='data:image/svg+xml,%253Csvg xmlns=%2527http://www.w3.org/2000/svg%2527 width=%2527150%2527 height=%2527150%2527%253E%253Crect width=%2527150%2527 height=%2527150%2527 fill=%2527%25231a1a1a%2527/%253E%253Ctext x=%252775%2527 y=%252780%2527 text-anchor=%2527middle%2527 fill=%2527%2523666%2527 font-size=%252712%2527%253ENo Image%253C/text%253E%253C/svg%253E'" />
         <div class="queue-post-info">
           <h4>#${idx + 1}. ${escapeHtml(post.title)}</h4>
           <div class="queue-post-slug">${state.settings.domain}${state.settings.blogSubpath}${escapeHtml(post.slug)}</div>
