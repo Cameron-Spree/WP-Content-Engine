@@ -4,6 +4,22 @@
 
 const logs = [];
 const errors = [];
+const apiLogs = [];
+
+export function recordApiLog(action, status, detail) {
+  const logObj = {
+    time: new Date().toLocaleTimeString(),
+    action,
+    status,
+    detail
+  };
+  apiLogs.push(logObj);
+  logs.push({
+    type: `API_${action}`,
+    time: logObj.time,
+    message: `[${status}] ${detail}`
+  });
+}
 
 // Intercept window errors and unhandled rejections
 window.addEventListener("error", (event) => {
@@ -66,9 +82,9 @@ export function getDiagnosticReport(state) {
 
   const storageMb = (storageBytes / (1024 * 1024)).toFixed(2);
 
-  // Slow or stuck resources (>1sec or pending)
+  // Slow or stuck resources (>800ms)
   const slowResources = perfEntries
-    .filter(entry => entry.duration > 800 || entry.transferSize === 0)
+    .filter(entry => entry.duration > 800)
     .map(entry => ({
       name: entry.name.split('?')[0].split('/').pop() || entry.name,
       fullUrl: entry.name,
@@ -90,11 +106,14 @@ export function getDiagnosticReport(state) {
     postsCount: state ? (state.posts || []).length : 0,
     mediaPoolCount: state ? (state.imagePool || []).length : 0,
     wpApiConfigured: Boolean(state && state.settings && state.settings.wpUsername && state.settings.wpAppPassword),
+    wpUsernameSet: Boolean(state && state.settings && state.settings.wpUsername),
+    wpAppPassLength: (state && state.settings && state.settings.wpAppPassword) ? state.settings.wpAppPassword.length : 0,
+    wordpressApiActivityLogs: apiLogs,
     totalResourcesLoaded: perfEntries.length,
     slowOrFailedResourcesCount: slowResources.length,
     slowResources: slowResources,
     recordedErrorsCount: errors.length,
     recordedErrors: errors,
-    recentLogs: logs.slice(-15)
+    recentLogs: logs.slice(-25)
   };
 }

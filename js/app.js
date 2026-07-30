@@ -9,7 +9,7 @@ import { parseAndValidateJSON } from "./utils/jsonValidator.js";
 import { autoMatchPostMedia, replaceImagePlaceholdersInHtml, buildWpUploadUrl, slugifyFilename } from "./utils/mediaMatcher.js";
 import { calculateBatchSchedule, parseFormattedDateToInput, formatInputToFormattedDate } from "./utils/scheduler.js";
 import { generateWXRXML } from "./utils/xmlGenerator.js";
-import { uploadImageToWordPress, updateWordPressMediaDetails } from "./utils/wpApiSync.js";
+import { uploadImageToWordPress, updateWordPressMediaDetails, testWordPressApiConnection } from "./utils/wpApiSync.js";
 import { getDiagnosticReport } from "./utils/debugLogger.js";
 
 // Storage Key
@@ -1184,6 +1184,26 @@ function initGlobalHeaderActions() {
       navigator.clipboard.writeText(JSON.stringify(report, null, 2)).then(() => {
         showToast("Full System Diagnostic Report copied to clipboard!", "success");
       });
+    });
+  }
+
+  const btnTestWpApi = document.getElementById("btn-test-wp-api");
+  if (btnTestWpApi) {
+    btnTestWpApi.addEventListener("click", async () => {
+      const resBox = document.getElementById("debug-wp-test-result");
+      if (resBox) resBox.innerHTML = `<span style="color: var(--accent-gold-dark);">Testing connection to ${state.settings.domain}...</span>`;
+      
+      const result = await testWordPressApiConnection(state.settings);
+      if (resBox) {
+        if (result.success) {
+          resBox.innerHTML = `<span style="color: #10b981; font-weight: 600;">${escapeHtml(result.message)}</span>`;
+          showToast("WordPress REST API Connection Successful!", "success");
+        } else {
+          resBox.innerHTML = `<span style="color: #ef4444; font-weight: 600;">${escapeHtml(result.message)}</span>`;
+          showToast("WordPress REST API Connection Failed!", "error");
+        }
+      }
+      renderDebugConsole();
     });
   }
 
