@@ -426,6 +426,7 @@ function initIngestionAndMedia() {
         if (selectedImg) {
           matched.featured_image_id = selectedImg.id;
           matched.featured_image = selectedImg;
+          matched.featured_image_manual = isManualFeaturedSelection;
         }
       }
       return matched;
@@ -433,6 +434,7 @@ function initIngestionAndMedia() {
     state.posts.push(...matchedPosts);
 
     activeIngestFeaturedImgId = null;
+    isManualFeaturedSelection = false;
     updateIngestFeaturedBanner(null);
 
     saveState();
@@ -689,6 +691,7 @@ function getSafeImageDisplayUrl(imgOrUrl) {
 
 // Active selected featured image ID for currently active/ingested post in Tab II
 let activeIngestFeaturedImgId = null;
+let isManualFeaturedSelection = false;
 
 async function autoSuggestMediaForCurrentJson(userTriggered = false) {
   const rawInput = document.getElementById("raw-json-input");
@@ -739,12 +742,14 @@ async function autoSuggestMediaForCurrentJson(userTriggered = false) {
       saveState();
     }
 
-    // Auto-select top match as featured image for this post
-    activeIngestFeaturedImgId = wpItems[0].id;
-    updateIngestFeaturedBanner(wpItems[0].title);
+    // Only auto-assign if the user has NOT manually locked a featured image selection!
+    if (!isManualFeaturedSelection) {
+      activeIngestFeaturedImgId = wpItems[0].id;
+      updateIngestFeaturedBanner(wpItems[0].title);
+    }
     renderMediaPool();
     if (userTriggered) {
-      showToast(`Auto-matched ${wpItems.length} WordPress media assets for "${primaryKeyword}"! Set featured cover to "${wpItems[0].title}".`, "success");
+      showToast(`Auto-matched ${wpItems.length} WordPress media assets for "${primaryKeyword}"!`, "success");
     }
   } else if (userTriggered) {
     showToast(`No WordPress media found for "${primaryKeyword}". Try clicking another keyword pill above!`, "warning");
@@ -920,10 +925,11 @@ function renderMediaPool() {
       e.stopPropagation();
       const imgId = btn.getAttribute("data-img-id");
       activeIngestFeaturedImgId = imgId;
+      isManualFeaturedSelection = true;
       const img = state.imagePool.find(i => i.id === imgId);
       if (img) {
         updateIngestFeaturedBanner(img.title);
-        showToast(`Selected "${img.title}" as Featured Cover Image for this post!`, "success");
+        showToast(`🔒 Locked "${img.title}" as Featured Cover Image for this post!`, "success");
       }
       renderMediaPool();
     };
