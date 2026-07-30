@@ -5,6 +5,7 @@
 const logs = [];
 const errors = [];
 const apiLogs = [];
+const imgErrorLogs = [];
 
 export function recordApiLog(action, status, detail) {
   const logObj = {
@@ -18,6 +19,21 @@ export function recordApiLog(action, status, detail) {
     type: `API_${action}`,
     time: logObj.time,
     message: `[${status}] ${detail}`
+  });
+}
+
+export function recordImageError(imgId, src, errorMsg) {
+  const errObj = {
+    time: new Date().toLocaleTimeString(),
+    imgId,
+    src,
+    errorMsg: errorMsg || "Failed to render <img> src"
+  };
+  imgErrorLogs.push(errObj);
+  logs.push({
+    type: "IMAGE_RENDER_ERROR",
+    time: errObj.time,
+    message: `[${imgId}] ${src}`
   });
 }
 
@@ -82,7 +98,15 @@ export function getDiagnosticReport(state) {
 
   const storageMb = (storageBytes / (1024 * 1024)).toFixed(2);
 
-  // Slow or stuck resources (>800ms)
+  const imagePoolSamples = (state && state.imagePool) ? state.imagePool.slice(0, 5).map(img => ({
+    id: img.id,
+    title: img.title,
+    filename: img.filename,
+    url: img.url,
+    previewUrl: img.previewUrl,
+    hasFileData: Boolean(img.fileData)
+  })) : [];
+
   const slowResources = perfEntries
     .filter(entry => entry.duration > 800)
     .map(entry => ({
@@ -105,15 +129,15 @@ export function getDiagnosticReport(state) {
     } : null,
     postsCount: state ? (state.posts || []).length : 0,
     mediaPoolCount: state ? (state.imagePool || []).length : 0,
+    imagePoolInspectorSamples: imagePoolSamples,
+    imageRenderErrorLogs: imgErrorLogs,
     wpApiConfigured: Boolean(state && state.settings && state.settings.wpUsername && state.settings.wpAppPassword),
-    wpUsernameSet: Boolean(state && state.settings && state.settings.wpUsername),
-    wpAppPassLength: (state && state.settings && state.settings.wpAppPassword) ? state.settings.wpAppPassword.length : 0,
     wordpressApiActivityLogs: apiLogs,
     totalResourcesLoaded: perfEntries.length,
     slowOrFailedResourcesCount: slowResources.length,
     slowResources: slowResources,
     recordedErrorsCount: errors.length,
     recordedErrors: errors,
-    recentLogs: logs.slice(-25)
+    recentLogs: logs.slice(-30)
   };
 }

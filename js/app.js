@@ -10,7 +10,7 @@ import { autoMatchPostMedia, replaceImagePlaceholdersInHtml, buildWpUploadUrl, s
 import { calculateBatchSchedule, parseFormattedDateToInput, formatInputToFormattedDate } from "./utils/scheduler.js";
 import { generateWXRXML } from "./utils/xmlGenerator.js";
 import { uploadImageToWordPress, updateWordPressMediaDetails, testWordPressApiConnection, fetchWordPressMediaPool } from "./utils/wpApiSync.js";
-import { getDiagnosticReport } from "./utils/debugLogger.js";
+import { getDiagnosticReport, recordImageError } from "./utils/debugLogger.js";
 
 // Storage Key
 const STORAGE_KEY = "wp_content_engine_state_v3";
@@ -1292,9 +1292,25 @@ function renderDebugConsole() {
       <div><strong>DOM Complete:</strong> ${report.navigationTiming ? report.navigationTiming.domCompleteMs + 'ms' : 'N/A'}</div>
       <div><strong>Load Event End:</strong> ${report.navigationTiming ? report.navigationTiming.loadEventEndMs + 'ms' : 'N/A'}</div>
       <div><strong>WP REST API Configured:</strong> ${report.wpApiConfigured ? 'YES' : 'NO'}</div>
+      <div><strong>Media Pool Count:</strong> ${report.mediaPoolCount}</div>
       <div><strong>Total Loaded Network Resources:</strong> ${report.totalResourcesLoaded}</div>
-      <div><strong>Recorded Console Errors:</strong> ${report.recordedErrorsCount}</div>
+      <div><strong>Recorded Errors:</strong> ${report.recordedErrorsCount}</div>
     `;
+  }
+
+  const imgsEl = document.getElementById("debug-images-box");
+  if (imgsEl) {
+    if (!report.imagePoolInspectorSamples || report.imagePoolInspectorSamples.length === 0) {
+      imgsEl.innerHTML = `<span style="color: var(--text-muted);">No media pool images loaded in memory.</span>`;
+    } else {
+      imgsEl.innerHTML = report.imagePoolInspectorSamples.map(img => `
+        <div style="margin-bottom:6px; padding-bottom:4px; border-bottom: 1px dashed rgba(255,255,255,0.1);">
+          <strong style="color: var(--accent-gold-dark);">[${escapeHtml(img.id)}] ${escapeHtml(img.title)}</strong>
+          <div style="font-size:10px; color: var(--text-muted); overflow-x: auto;">URL: ${escapeHtml(img.url)}</div>
+          <div style="font-size:10px; color: var(--text-dim); overflow-x: auto;">PreviewUrl: ${escapeHtml(img.previewUrl || 'NONE')}</div>
+        </div>
+      `).join("");
+    }
   }
 
   const slowEl = document.getElementById("debug-slow-resources-box");
