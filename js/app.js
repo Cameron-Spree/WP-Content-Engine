@@ -9,6 +9,7 @@ import { parseAndValidateJSON } from "./utils/jsonValidator.js";
 import { autoMatchPostMedia, replaceImagePlaceholdersInHtml, buildWpUploadUrl, slugifyFilename } from "./utils/mediaMatcher.js";
 import { calculateBatchSchedule, parseFormattedDateToInput, formatInputToFormattedDate } from "./utils/scheduler.js";
 import { generateWXRXML } from "./utils/xmlGenerator.js";
+import { uploadImageToWordPress } from "./utils/wpApiSync.js";
 
 // Storage Key
 const STORAGE_KEY = "wp_content_engine_state_v3";
@@ -466,14 +467,29 @@ function processUploadedImageFiles(files) {
 
   let processedCount = 0;
 
-  fileArray.forEach(file => {
+  fileArray.forEach(async (file) => {
     const filename = slugifyFilename(file.name);
-    const computedWpUrl = buildWpUploadUrl(filename, state.settings);
+    let computedWpUrl = buildWpUploadUrl(filename, state.settings);
+    let wpMediaId = null;
+
+    // Check if WordPress Direct REST API credentials are configured
+    if (state.settings.wpUsername && state.settings.wpAppPassword) {
+      showToast(`Uploading ${file.name} directly to WordPress...`, "info");
+      const wpResult = await uploadImageToWordPress(file, state.settings);
+      if (wpResult && wpResult.success) {
+        computedWpUrl = wpResult.url;
+        wpMediaId = wpResult.wpMediaId;
+        showToast(`Uploaded to WordPress! Media ID: #${wpResult.wpMediaId}`, "success");
+      } else if (wpResult && wpResult.error) {
+        showToast(`WP API Notice: Uploaded locally (WP response: ${wpResult.status || 'Offline'})`, "warning");
+      }
+    }
+
     let objectUrl = null;
     try {
       objectUrl = URL.createObjectURL(file);
     } catch (e) {
-      // fallback to FileReader
+      // fallback
     }
 
     const reader = new FileReader();
@@ -486,6 +502,7 @@ function processUploadedImageFiles(files) {
         id: "img_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4),
         filename: filename,
         url: computedWpUrl,
+        wpMediaId: wpMediaId,
         previewUrl: objectUrl || dataUrl,
         title: file.name.split(".")[0].replace(/[-_]/g, " "),
         tags: tags,
@@ -499,7 +516,6 @@ function processUploadedImageFiles(files) {
       if (processedCount === fileArray.length) {
         saveState();
         renderAll();
-        showToast(`Successfully added ${fileArray.length} image(s) to Media Library!`, "success");
       }
     };
 
