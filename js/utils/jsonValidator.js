@@ -70,7 +70,7 @@ export function parseAndValidateJSON(rawInput) {
 
     const extractedPlaceholders = extractPlaceholdersFromHtml(cleanContentHtml);
     const image_placeholders = Array.isArray(p.image_placeholders) 
-      ? [...new Set([...p.image_placeholders, ...extractedPlaceholders])]
+      ? [...new Set([...p.image_placeholders.map(k => String(k).trim().toLowerCase()), ...extractedPlaceholders])]
       : extractedPlaceholders;
 
     validatedPosts.push({
@@ -126,105 +126,79 @@ function preCleanAIJsonString(raw) {
     endIdx = str.lastIndexOf("]");
   }
 
-  if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+  if (startIdx !== -1 && endIdx > startIdx) {
     str = str.substring(startIdx, endIdx + 1);
   }
-
-  // 3. Fix markdown links inside href attribute
-  str = str.replace(/href=["']\[[^\]]+\]\(([^)]+)\)["']/gi, 'href=\'$1\'');
-  str = str.replace(/href=\["[^\]]+"\]\(([^)]+)\)/gi, 'href=\'$1\'');
 
   return str;
 }
 
-function repairAIJsonString(raw) {
-  let str = raw;
-  str = str.replace(/(?<=:\s*"[^"]*)\n(?=[^"]*")/g, "\\n");
-  str = str.replace(/href=["']\[[^\]]+\]\(([^)]+)\)["']/gi, 'href=\'$1\'');
+function repairAIJsonString(jsonStr) {
+  let repaired = jsonStr
+    .replace(/[\u0000-\u001F]+/g, (match) => {
+      if (match === "\n") return "\\n";
+      if (match === "\r") return "\\r";
+      if (match === "\t") return "\\t";
+      return "";
+    })
+    .replace(/,\s*([\}\]])/g, "$1");
 
-  const contentMatch = str.match(/"content_html"\s*:\s*"(.*?)"\s*(\}\s*$|\,\s*"[a-zA-Z0-9_]+"\s*:)/s);
-  if (contentMatch) {
-    const originalContent = contentMatch[1];
-    const fixedContent = originalContent.replace(/<([^>]+)>/g, (tag) => {
-      return tag.replace(/(\w+)=(?:"([^"]*)"|'([^']*)')/g, '$1=\'$2$3\'');
-    });
-    str = str.replace(originalContent, fixedContent);
+  return repaired;
+}
+
+function fallbackRegexExtractPost(rawStr) {
+  const titleMatch = rawStr.match(/"title"\s*:\s*"([^"]+)"/);
+  const contentMatch = rawStr.match(/"content_html"\s*:\s*"([\s\S]+?)"\s*,\s*"/);
+
+  if (titleMatch && contentMatch) {
+    return {
+      title: titleMatch[1],
+      content_html: contentMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"')
+    };
   }
-
-  return str;
+  return null;
 }
 
 function cleanHtmlMarkdownLinks(html) {
   if (!html) return "";
-  let clean = html;
 
-  clean = clean.replace(/href=["']\[[^\]]+\]\(([^)]+)\)["']/gi, 'href=\'$1\'');
-  clean = clean.replace(/href=\["[^\]]+"\]\(([^)]+)\)/gi, 'href=\'$1\'');
-  clean = clean.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, '<a href=\'$2\'>$1</a>');
+  let clean = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g, (match, text, url) => {
+    return `<a href="${url}">${text}</a>`;
+  });
+
+  clean = clean.replace(/<a\s+href=['"]([^'"]+)['"]>([^<]+)<\/a>/g, (match, url, text) => {
+    return `<a href="${url}">${text}</a>`;
+  });
 
   return clean;
 }
 
 function autoFixUnclosedAnchorTags(html) {
   if (!html) return "";
-  let text = html.trim();
+  const openCount = (html.match(/<a\s/gi) || []).length;
+  const closeCount = (html.match(/<\/a>/gi) || []).length;
 
-  // Close unclosed <a href='...'> tags cleanly
-  text = text.replace(/<a\s+href=['"]([^'"]+)['"]\s*>([\s\S]*?)(?=(<a\s|<\/a>|<h[1-6]|<p|<div|<table|<ul|<ol|<blockquote>|$))/gi, (match, url, innerText) => {
-    if (innerText.includes("</a>")) {
-      return match;
-    }
-    const words = innerText.trim().split(/\s+/);
-    let anchorText = innerText;
-    let remainder = "";
-    if (words.length > 5) {
-      anchorText = words.slice(0, 4).join(" ");
-      remainder = " " + words.slice(4).join(" ");
-    }
-    return `<a href='${url}'>${anchorText}</a>${remainder}`;
-  });
-
-  return text;
+  if (openCount > closeCount) {
+    return html.replace(/(<a\s+href=['"][^'"]+['"][^>]*>[^<]+)(?!\s*<\/a>)(?=\s*<|\s*$)/gi, "$1</a>");
+  }
+  return html;
 }
 
 function autoWrapParagraphs(html) {
   if (!html) return "";
-  let text = html.trim();
-
-  // If text doesn't have <p> tags, split by double newlines and wrap in <p>
-  if (!/<p>|<h[1-6]>|<div>|<table>/i.test(text)) {
-    const blocks = text.split(/\n\s*\n/).map(b => b.trim()).filter(Boolean);
-    text = blocks.map(block => `<p>${block}</p>`).join("\n\n");
+  if (html.includes("<p>") || html.includes("<h2>") || html.includes("<div>")) {
+    return html;
   }
-
-  return text;
+  return html
+    .split(/\n\s*\n/)
+    .map(p => p.trim())
+    .filter(Boolean)
+    .map(p => `<p>${p}</p>`)
+    .join("\n");
 }
 
-function fallbackRegexExtractPost(raw) {
-  try {
-    const titleMatch = raw.match(/"title"\s*:\s*"([^"]+)"/);
-    const slugMatch = raw.match(/"slug"\s*:\s*"([^"]+)"/);
-    const contentMatch = raw.match(/"content_html"\s*:\s*"([\s\S]+?)"\s*(\}\s*$|\,\s*"[a-zA-Z0-9_]+"\s*:)/);
-
-    if (titleMatch && contentMatch) {
-      return {
-        title: titleMatch[1],
-        slug: slugMatch ? slugMatch[1] : generateSlug(titleMatch[1]),
-        categories: ["Garden Machinery"],
-        tags: ["stihl"],
-        yoast_meta_title: titleMatch[1],
-        yoast_meta_desc: "",
-        content_html: contentMatch[1]
-      };
-    }
-  } catch (e) {
-    // ignore
-  }
-  return null;
-}
-
-function generateSlug(text) {
-  return String(text || "")
+function generateSlug(title) {
+  return title
     .toLowerCase()
     .replace(/[^\w\s-]/g, "")
     .trim()
@@ -236,11 +210,11 @@ function stripHtml(html) {
 }
 
 function extractPlaceholdersFromHtml(html) {
-  const regex = /\{\{IMAGE:([a-zA-Z0-9_-]+)\}\}/g;
+  const regex = /\{\{IMAGE:([^}]+)\}\}/gi;
   const matches = [];
   let match;
   while ((match = regex.exec(html)) !== null) {
-    matches.push(match[1].toLowerCase());
+    matches.push(match[1].trim().toLowerCase());
   }
   return [...new Set(matches)];
 }
