@@ -1114,6 +1114,11 @@ function populateSettingsForm() {
   document.getElementById("setting-upload-year").value = state.settings.uploadYear || "2026";
   document.getElementById("setting-upload-month").value = state.settings.uploadMonth || "06";
 
+  const wpUserEl = document.getElementById("setting-wp-username");
+  if (wpUserEl) wpUserEl.value = state.settings.wpUsername || "";
+  const wpPassEl = document.getElementById("setting-wp-app-pass");
+  if (wpPassEl) wpPassEl.value = state.settings.wpAppPassword || "";
+
   const bankLines = (state.settings.linksBank || []).map(item => `${item.url} | ${item.label}`).join("\n");
   document.getElementById("setting-links-bank").value = bankLines;
 }
@@ -1124,6 +1129,11 @@ function saveSiteSettings() {
   const uploadYear = document.getElementById("setting-upload-year").value.trim();
   const uploadMonth = document.getElementById("setting-upload-month").value.trim();
 
+  const wpUsernameEl = document.getElementById("setting-wp-username");
+  const wpAppPassEl = document.getElementById("setting-wp-app-pass");
+  const wpUsername = wpUsernameEl ? wpUsernameEl.value.trim() : "";
+  const wpAppPassword = wpAppPassEl ? wpAppPassEl.value.trim() : "";
+
   const linksText = document.getElementById("setting-links-bank").value.trim();
   const linksBank = linksText.split("\n").map(line => {
     const parts = line.split("|");
@@ -1132,7 +1142,7 @@ function saveSiteSettings() {
     return url ? { url, label } : null;
   }).filter(Boolean);
 
-  state.settings = { domain, blogSubpath, uploadYear, uploadMonth, linksBank };
+  state.settings = { domain, blogSubpath, uploadYear, uploadMonth, wpUsername, wpAppPassword, linksBank };
 
   state.imagePool = state.imagePool.map(img => ({
     ...img,
