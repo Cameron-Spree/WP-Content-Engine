@@ -612,6 +612,21 @@ function extractTagsFromFilename(filename) {
   return [...new Set(parts.filter(p => p.length > 2 && !stopWords.includes(p)))];
 }
 
+function getSafeImageDisplayUrl(imgOrUrl) {
+  if (!imgOrUrl) return "";
+  const targetUrl = typeof imgOrUrl === "string" ? imgOrUrl : (imgOrUrl.previewUrl || imgOrUrl.url);
+  if (!targetUrl) return "";
+
+  if (targetUrl.startsWith("data:") || targetUrl.startsWith("blob:")) {
+    return targetUrl;
+  }
+
+  if (targetUrl.startsWith("http")) {
+    return `/api/wp-proxy?action=image&imgUrl=${encodeURIComponent(targetUrl)}`;
+  }
+  return targetUrl;
+}
+
 function renderMediaPool() {
   const container = document.getElementById("media-pool-container");
   const fullContainer = document.getElementById("full-media-library-container");
@@ -642,11 +657,11 @@ function renderMediaPool() {
   if (galleryCountEl) galleryCountEl.textContent = `${images.length} Asset${images.length !== 1 ? "s" : ""}`;
 
   const renderCardHTML = (img) => {
-    const displaySrc = img.previewUrl || img.url;
+    const displaySrc = getSafeImageDisplayUrl(img);
     return `
     <div class="media-asset-card" data-img-id="${img.id}">
       <div class="media-asset-img-wrapper">
-        <img src="${escapeHtml(displaySrc)}" alt="${escapeHtml(img.title)}" loading="lazy" onerror="this.onerror=null;this.style.display='none';this.parentElement.innerHTML='<div style=\'display:flex;align-items:center;justify-content:center;height:100%;background:rgba(0,0,0,0.3);color:var(--text-muted);font-size:11px;\'>No Preview</div>'" />
+        <img src="${escapeHtml(displaySrc)}" alt="${escapeHtml(img.title)}" loading="lazy" onerror="recordImageError('${img.id}', '${escapeHtml(displaySrc)}');this.onerror=null;this.style.display='none';this.parentElement.innerHTML='<div style=\'display:flex;align-items:center;justify-content:center;height:100%;background:rgba(0,0,0,0.3);color:var(--text-muted);font-size:11px;\'>No Preview</div>'" />
       </div>
       <div class="media-asset-details">
         <div class="media-asset-title" title="${escapeHtml(img.title)}">${escapeHtml(img.title)}</div>
