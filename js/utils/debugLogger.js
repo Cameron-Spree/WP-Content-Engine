@@ -96,27 +96,35 @@ export function getDiagnosticReport(state) {
 
   const storageMb = (storageBytes / (1024 * 1024)).toFixed(2);
 
-  const imagePoolSamples = (state && state.imagePool) ? state.imagePool.slice(0, 5).map(img => ({
+  const rawInputEl = document.getElementById("raw-json-input");
+  const currentTab2RawInput = rawInputEl ? rawInputEl.value : "";
+
+  const imagePoolSamples = (state && state.imagePool) ? state.imagePool.map(img => ({
     id: img.id,
+    wpMediaId: img.wpMediaId,
     title: img.title,
     filename: img.filename,
     url: img.url,
-    previewUrl: img.previewUrl,
-    hasFileData: Boolean(img.fileData)
+    tags: img.tags
   })) : [];
 
-  const postQueueSamples = (state && state.posts) ? state.posts.slice(0, 5).map(p => ({
+  const postQueueSamples = (state && state.posts) ? state.posts.map((p, i) => ({
+    queueIndex: i + 1,
     id: p.id,
     title: p.title,
+    slug: p.slug,
     hasFeaturedImage: Boolean(p.featured_image),
     featuredImageTitle: p.featured_image ? p.featured_image.title : "None",
     featuredImageUrl: p.featured_image ? (p.featured_image.previewUrl || p.featured_image.url) : "None",
     isFeaturedManual: Boolean(p.featured_image_manual),
+    imagePlaceholders: p.image_placeholders || [],
     mappedImages: p.mapped_images ? Object.entries(p.mapped_images).map(([kw, img]) => ({
       placeholder: kw,
+      mappedId: img ? img.id : "None",
       mappedTitle: img ? img.title : "None",
       mappedUrl: img ? img.url : "None"
-    })) : []
+    })) : [],
+    contentHtmlSnippet: (p.content_html || "").substring(0, 300) + "..."
   })) : [];
 
   const slowResources = perfEntries
@@ -141,8 +149,9 @@ export function getDiagnosticReport(state) {
     } : null,
     postsCount: state ? (state.posts || []).length : 0,
     mediaPoolCount: state ? (state.imagePool || []).length : 0,
-    imagePoolInspectorSamples: imagePoolSamples,
+    tab2CurrentRawJsonSnippet: currentTab2RawInput ? currentTab2RawInput.substring(0, 500) : "Empty",
     postQueueInspectorSamples: postQueueSamples,
+    imagePoolInspectorSamples: imagePoolSamples.slice(0, 10),
     imageRenderErrorLogs: imgErrorLogs,
     wpApiConfigured: Boolean(state && state.settings && state.settings.wpUsername && state.settings.wpAppPassword),
     wordpressApiActivityLogs: apiLogs,

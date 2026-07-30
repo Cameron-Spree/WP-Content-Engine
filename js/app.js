@@ -1568,6 +1568,17 @@ function initGlobalHeaderActions() {
     });
   }
 
+  const btnCopyDebug = document.getElementById("btn-copy-debug-report");
+  if (btnCopyDebug) {
+    btnCopyDebug.addEventListener("click", () => {
+      const report = getDiagnosticReport(state);
+      const jsonStr = JSON.stringify(report, null, 2);
+      navigator.clipboard.writeText(jsonStr).then(() => {
+        showToast("📋 Full System Diagnostic Report copied to clipboard!", "success");
+      });
+    });
+  }
+
   document.getElementById("btn-open-settings").addEventListener("click", () => {
     openModal("modal-settings");
   });
