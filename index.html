@@ -6,8 +6,8 @@
   <title>WP Content Engine - v2.5.1</title>
   <meta name="description" content="Construct, manage, schedule, and export bulk WordPress blog posts with Yoast SEO metadata and attached media via WXR 1.2 XML format.">
   
-  <!-- Use standard favicon.ico (fallback) to prevent browser hanging -->
-  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <!-- Inline SVG favicon — no external file request, no broken icon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231a1a1a'/><text x='16' y='22' font-family='serif' font-size='18' font-weight='bold' fill='%23c9a84c' text-anchor='middle'>W</text></svg>" type="image/svg+xml">
 
   <!-- Fonts: Async loading to prevent render/load blocking -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -30,7 +30,7 @@
           <div class="logo-icon"><i data-lucide="landmark"></i></div>
           <div class="brand-text">
             <h1>WP Content Engine</h1>
-            <span class="version-badge" id="app-version-tag">v3.7.1 • Build 10:44</span>
+            <span class="version-badge" id="app-version-tag">v3.7.2 • Build 10:47</span>
           </div>
         </div>
       </div>
@@ -817,34 +817,38 @@ https://briantsofrisborough.co.uk/product-category/garden-machinery/lawn-mowers/
   <!-- Toast Notification Container -->
   <div id="toast-container" class="toast-container"></div>
 
-  <!-- Dynamic CDN Loader: loads Lucide & JSZip async so browser tab spinner stops immediately -->
+  <!-- Dynamic CDN Loader: waits for window 'load' event so browser tab spinner stops first -->
   <script>
     function loadScript(src) {
-      return new Promise(function(resolve, reject) {
+      return new Promise(function(resolve) {
         var s = document.createElement('script');
         s.src = src;
-        s.async = true; // Use async to prevent blocking
+        s.async = true;
         s.onload = resolve;
         s.onerror = function() {
-          console.warn('CDN load failed for ' + src + ', trying fallback...');
+          console.warn('CDN load failed for ' + src);
           resolve(); 
         };
         document.body.appendChild(s);
       });
     }
 
-    // Use setTimeout to ensure the browser considers the initial page load complete
-    setTimeout(function() {
-      Promise.all([
-        loadScript('https://cdn.jsdelivr.net/npm/lucide@0.378.0/dist/umd/lucide.min.js'),
-        loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js')
-      ]).then(function() {
-        if (window.lucide && typeof window.lucide.createIcons === 'function') {
-          window.lucide.createIcons();
-        }
-        window.dispatchEvent(new CustomEvent('libs-ready'));
+    // Wait for the browser 'load' event — this is when the tab spinner STOPS.
+    // Only THEN start downloading CDN scripts so they don't extend the spinner.
+    window.addEventListener('load', function() {
+      // Extra requestAnimationFrame ensures the browser has fully painted and stopped the spinner
+      requestAnimationFrame(function() {
+        Promise.all([
+          loadScript('https://cdn.jsdelivr.net/npm/lucide@0.378.0/dist/umd/lucide.min.js'),
+          loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js')
+        ]).then(function() {
+          if (window.lucide && typeof window.lucide.createIcons === 'function') {
+            window.lucide.createIcons();
+          }
+          window.dispatchEvent(new CustomEvent('libs-ready'));
+        });
       });
-    }, 100); // Small delay
+    });
   </script>
 
   <!-- Application Logic Modules -->
