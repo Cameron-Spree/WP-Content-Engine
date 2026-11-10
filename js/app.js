@@ -337,9 +337,9 @@ function updateBulkClusterPromptPreview() {
   }
 
   container.innerHTML = clusterPrompts.map(item => `
-    <div class="card" style="margin-bottom: 16px; padding: 18px; border-color: var(--border-gold-medium);">
+    <div class="card" style="margin-bottom: 16px; padding: 18px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-        <strong style="font-family: var(--font-cinzel); font-size: 13px; color: var(--accent-gold-dark);">
+        <strong style="font-size: 13.5px; font-weight: 700; color: var(--brand-primary);">
           #${item.index}. ${escapeHtml(item.title)}
         </strong>
         <button class="btn btn-primary btn-sm btn-copy-single-cluster" data-index="${item.index}">

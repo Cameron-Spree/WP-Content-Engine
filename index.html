@@ -3,41 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WP Content Engine - v2.5.1</title>
+  <title>WordPress Content Engine — Briants of Risborough Studio</title>
   <meta name="description" content="Construct, manage, schedule, and export bulk WordPress blog posts with Yoast SEO metadata and attached media via WXR 1.2 XML format.">
   
-  <!-- Inline SVG favicon — no external file request, no broken icon -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%231a1a1a'/><text x='16' y='22' font-family='serif' font-size='18' font-weight='bold' fill='%23c9a84c' text-anchor='middle'>W</text></svg>" type="image/svg+xml">
+  <!-- Inline SVG favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%23095f36'/><text x='16' y='22' font-family='sans-serif' font-size='18' font-weight='800' fill='%23ffffff' text-anchor='middle'>W</text></svg>" type="image/svg+xml">
 
-  <!-- Fonts: Async loading to prevent render/load blocking -->
+  <!-- Google Fonts: Plus Jakarta Sans, Inter, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800;900&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"></noscript>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   
-  <!-- Lucide & JSZip are loaded dynamically after page load — see bottom of body -->
-
   <!-- Stylesheet -->
   <link rel="stylesheet" href="styles.css">
 </head>
-<body class="marble-theme">
+<body>
 
-  <div id="app">
-    <!-- Top Header -->
-    <header class="app-header">
+  <!-- Structured Full-Width Top Header (Apple Liquid Glass Style) -->
+  <header class="site-header">
+    <div class="site-header-inner">
       <div class="header-left">
         <div class="brand-logo">
-          <div class="logo-icon"><i data-lucide="landmark"></i></div>
+          <div class="logo-icon" id="header-logo-badge">
+            <i data-lucide="layers"></i>
+          </div>
           <div class="brand-text">
-            <h1>WP Content Engine</h1>
-            <span class="version-badge" id="app-version-tag">v8.8.0 • Build 16:22</span>
+            <h1>WordPress Content Engine</h1>
+            <span class="version-badge" id="app-version-tag">Briants of Risborough • WordPress Studio v8.8.0</span>
           </div>
         </div>
       </div>
 
       <div class="header-stats">
         <div class="stat-pill" id="stat-total-posts">
-          <i data-lucide="scroll"></i>
+          <i data-lucide="file-text"></i>
           <span class="stat-label">Posts:</span>
           <span class="stat-value" id="count-total">0</span>
         </div>
@@ -52,18 +51,21 @@
           <span class="stat-value" id="count-media">0</span>
         </div>
         <div class="stat-pill status-ready" id="stat-ready">
-          <i data-lucide="award"></i>
+          <i data-lucide="check-circle-2"></i>
           <span class="stat-label">Export Ready:</span>
           <span class="stat-value" id="count-ready">0</span>
         </div>
       </div>
 
       <div class="header-actions">
-        <button class="btn btn-outline btn-sm" id="btn-open-debug" style="border-color: var(--accent-gold-dark);">
-          <i data-lucide="bug"></i> System Diagnostics
+        <a href="../index.html" class="btn btn-outline btn-sm" id="btn-switch-platform" style="text-decoration: none;">
+          <i data-lucide="arrow-left"></i> Switch Platform
+        </a>
+        <button class="btn btn-outline btn-sm" id="btn-open-debug">
+          <i data-lucide="activity"></i> Diagnostics
         </button>
         <button class="btn btn-outline btn-sm" id="btn-open-settings">
-          <i data-lucide="settings"></i> Site & Links Settings
+          <i data-lucide="sliders-horizontal"></i> Site & Links Settings
         </button>
         <button class="btn btn-secondary btn-sm" id="btn-load-sample">
           <i data-lucide="sparkles"></i> Load Sample Data
@@ -72,33 +74,35 @@
           <i data-lucide="download"></i> Export WXR XML
         </button>
       </div>
-    </header>
+    </div>
+  </header>
 
-    <!-- Main Navigation Tabs with Roman Numerals -->
+  <div id="app">
+    <!-- Main Navigation Tabs -->
     <nav class="nav-tabs-container">
       <div class="nav-tabs">
         <button class="tab-btn active" data-tab="tab-prompt">
           <i data-lucide="bot"></i>
-          <span class="tab-title">I. AI Prompt Generator</span>
+          <span class="tab-title">1. AI Prompt Generator</span>
         </button>
         <button class="tab-btn" data-tab="tab-ingest">
           <i data-lucide="file-json"></i>
-          <span class="tab-title">II. JSON Ingestion</span>
+          <span class="tab-title">2. JSON Ingestion</span>
           <span class="badge-count" id="badge-ingest-count">0</span>
         </button>
         <button class="tab-btn" data-tab="tab-media">
           <i data-lucide="image"></i>
-          <span class="tab-title">III. Media Library</span>
+          <span class="tab-title">3. Media Library</span>
           <span class="badge-count" id="badge-media-count">0</span>
         </button>
         <button class="tab-btn" data-tab="tab-queue">
           <i data-lucide="calendar-clock"></i>
-          <span class="tab-title">IV. Post Queue & Scheduler</span>
+          <span class="tab-title">4. Post Queue & Scheduler</span>
           <span class="badge-count" id="badge-queue-count">0</span>
         </button>
         <button class="tab-btn" data-tab="tab-export">
           <i data-lucide="code-2"></i>
-          <span class="tab-title">V. WXR XML Export</span>
+          <span class="tab-title">5. WXR XML Export</span>
         </button>
       </div>
     </nav>
@@ -122,8 +126,8 @@
         <div class="card" style="margin-bottom: 24px; padding: 18px 24px;">
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
             <div style="display: flex; align-items: center; gap: 10px;">
-              <i data-lucide="layers" style="color: var(--accent-gold-dark);"></i>
-              <strong style="font-family: var(--font-cinzel); font-size: 14px;">PROMPT GENERATION MODE:</strong>
+              <i data-lucide="layers" style="color: var(--brand-primary);"></i>
+              <strong style="font-size: 13px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase;">PROMPT GENERATION MODE:</strong>
             </div>
             <div class="mode-toggle-buttons">
               <button type="button" class="btn btn-primary" id="btn-mode-single">
@@ -783,7 +787,7 @@ How to Sharpen a STIHL Chainsaw Chain at Home</textarea>
       </div>
 
       <div class="modal-body">
-        <h4 style="font-family: var(--font-cinzel); margin-bottom: 12px;"><i data-lucide="globe"></i> WordPress Domain & Upload Paths</h4>
+        <h4 style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;"><i data-lucide="globe"></i> WordPress Domain & Upload Paths</h4>
         <div class="form-row">
           <div class="form-group">
             <label for="setting-domain">Site Base Domain</label>
@@ -806,9 +810,9 @@ How to Sharpen a STIHL Chainsaw Chain at Home</textarea>
           </div>
         </div>
 
-        <hr style="border: 0; border-top: 1px solid var(--border-gold-subtle); margin: 20px 0;">
+        <hr style="border: 0; border-top: 1px solid rgba(15, 23, 42, 0.08); margin: 20px 0;">
 
-        <h4 style="font-family: var(--font-cinzel); margin-bottom: 8px;"><i data-lucide="key"></i> WordPress Direct REST API Sync (Optional)</h4>
+        <h4 style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;"><i data-lucide="key"></i> WordPress Direct REST API Sync (Optional)</h4>
         <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">Enter your WP Username & 24-character Application Password (from WP Admin &rarr; Users &rarr; Profile) to upload media directly into WordPress!</p>
 
         <div class="form-row">
@@ -822,9 +826,9 @@ How to Sharpen a STIHL Chainsaw Chain at Home</textarea>
           </div>
         </div>
 
-        <hr style="border: 0; border-top: 1px solid var(--border-gold-subtle); margin: 20px 0;">
+        <hr style="border: 0; border-top: 1px solid rgba(15, 23, 42, 0.08); margin: 20px 0;">
 
-        <h4 style="font-family: var(--font-cinzel); margin-bottom: 8px;"><i data-lucide="link"></i> Master Internal Links Bank</h4>
+        <h4 style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;"><i data-lucide="link"></i> Master Internal Links Bank</h4>
         <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">Store your site's cornerstone categories, services, and key pages. These links are automatically injected into the AI prompt generator so posts include relevant internal links.</p>
 
         <div class="form-group">
@@ -860,40 +864,40 @@ https://briantsofrisborough.co.uk/product-category/garden-machinery/lawn-mowers/
         </div>
 
         <div class="form-group">
-          <label style="font-family: var(--font-cinzel); font-size:12px; color:var(--accent-gold-dark);">System Status & Memory Usage</label>
-          <div id="debug-summary-box" style="background: rgba(0,0,0,0.4); padding: 12px; border-radius: 6px; border: 1px solid var(--border-gold-subtle); font-family: var(--font-mono); font-size: 11px; margin-bottom: 16px;">
+          <label style="font-size:12px; font-weight:700; color:var(--brand-primary);">System Status & Memory Usage</label>
+          <div id="debug-summary-box" style="padding: 12px; border-radius: 6px; font-family: var(--font-mono); font-size: 11px; margin-bottom: 16px;">
             <!-- Rendered dynamically -->
           </div>
         </div>
 
         <div class="form-group">
-          <label style="font-family: var(--font-cinzel); font-size:12px; color:var(--accent-gold-dark);">Media Assets & Image Previews Inspector</label>
-          <div id="debug-images-box" style="background: rgba(0,0,0,0.4); padding: 12px; border-radius: 6px; border: 1px solid var(--border-gold-subtle); font-family: var(--font-mono); font-size: 11px; max-height: 180px; overflow-y: auto; margin-bottom: 16px;">
+          <label style="font-size:12px; font-weight:700; color:var(--brand-primary);">Media Assets & Image Previews Inspector</label>
+          <div id="debug-images-box" style="padding: 12px; border-radius: 6px; font-family: var(--font-mono); font-size: 11px; max-height: 180px; overflow-y: auto; margin-bottom: 16px;">
             <!-- Rendered dynamically -->
           </div>
         </div>
 
         <div class="form-group">
-          <label style="font-family: var(--font-cinzel); font-size:12px; color:var(--accent-gold-dark);">Slow or Pending Network Resources (Load Spinner Causes)</label>
-          <div id="debug-slow-resources-box" style="background: rgba(0,0,0,0.4); padding: 12px; border-radius: 6px; border: 1px solid var(--border-gold-subtle); font-family: var(--font-mono); font-size: 11px; max-height: 180px; overflow-y: auto; margin-bottom: 16px;">
+          <label style="font-size:12px; font-weight:700; color:var(--brand-primary);">Slow or Pending Network Resources (Load Spinner Causes)</label>
+          <div id="debug-slow-resources-box" style="padding: 12px; border-radius: 6px; font-family: var(--font-mono); font-size: 11px; max-height: 180px; overflow-y: auto; margin-bottom: 16px;">
             <!-- Rendered dynamically -->
           </div>
         </div>
 
         <div class="form-group">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 6px;">
-            <label style="font-family: var(--font-cinzel); font-size:12px; color:var(--accent-gold-dark);">WordPress Direct REST API Live Diagnostic Test</label>
+            <label style="font-size:12px; font-weight:700; color:var(--brand-primary);">WordPress Direct REST API Live Diagnostic Test</label>
             <button class="btn btn-success btn-sm" id="btn-test-wp-api" type="button">
               <i data-lucide="zap"></i> Test WordPress API Connection Now
             </button>
           </div>
-          <div id="debug-wp-test-result" style="background: rgba(0,0,0,0.4); padding: 10px; border-radius: 6px; border: 1px dashed var(--border-gold-subtle); font-family: var(--font-mono); font-size: 11px; margin-bottom: 16px; min-height: 38px;">
+          <div id="debug-wp-test-result" style="padding: 10px; border-radius: 6px; border: 1px dashed rgba(15, 23, 42, 0.15); font-family: var(--font-mono); font-size: 11px; margin-bottom: 16px; min-height: 38px;">
             <span style="color: var(--text-muted);">Click button above to test your WordPress Username, Application Password, and CORS uploading headers live.</span>
           </div>
         </div>
 
         <div class="form-group">
-          <label style="font-family: var(--font-cinzel); font-size:12px; color:var(--accent-gold-dark);">Runtime Log & Error Console</label>
+          <label style="font-size:12px; font-weight:700; color:var(--brand-primary);">Runtime Log & Error Console</label>
           <textarea id="debug-log-output" class="code-textarea" rows="8" readonly style="font-size:11px;"></textarea>
         </div>
       </div>
